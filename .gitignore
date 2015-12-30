@@ -1,0 +1,13 @@
+*.exe
+*.dll
+*.o
+*.ppu
+*.res
+*.or
+*.compiled
+*.*~
+lib/
+*.obj
+*.lps
+*.xml
+*.bak
