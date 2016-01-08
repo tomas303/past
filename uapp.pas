@@ -139,6 +139,8 @@ var
 begin
   mPersistDIC := fDIC.Locate(TDIContainer, cPersistRID);
   //
+  mReg := fDIC.Add(TDIOwner, '', ckSingle);
+  //
   mReg := fDIC.Add(TGUILauncher, '', ckSingle);
   mReg.InjectProp('Kicker', IGUIKicker);
   //
@@ -147,13 +149,13 @@ begin
   mReg := fDIC.Add(TKicker, IGUIKicker);
   mReg.InjectProp('MainForm', TMainForm);
   //
-  mReg := fDIC.Add(TMainForm, Application);
+  mReg := fDIC.Add(TMainForm, fDIC.Locate(TDIOwner));
   mReg.InjectProp('Store', IPersistStore, '', mPersistDIC);
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
   mReg.InjectProp('Binder', IRBTallyBinder, 'listbox', mPersistDIC);
   mReg.InjectProp('Edit', IEditData, 'GroupForm');
   //
-  mReg := fDIC.Add(TGroupForm, Application, IEditData, 'GroupForm');
+  mReg := fDIC.Add(TGroupForm, fDIC.Locate(TDIOwner), IEditData, 'GroupForm');
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('Cryptic', ICryptic);
