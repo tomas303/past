@@ -5,7 +5,7 @@ unit uCryptic;
 interface
 
 uses
-  Classes, SysUtils, trl_icryptic, dcprc4, DCPsha1;
+  Classes, SysUtils, trl_icryptic, DCPtwofish, DCPsha256;
 
 
 type
@@ -39,7 +39,7 @@ end;
 
 function TCryptic.Decode(const AData: String): String;
 var
-  mCipher: TDCP_rc4;
+  mCipher: TDCP_twofish;
 begin
   CheckKey;
   if AData = '' then
@@ -47,9 +47,9 @@ begin
     Result := '';
     Exit;
   end;
-  mCipher:= TDCP_rc4.Create(nil);
+  mCipher:= TDCP_twofish.Create(nil);
   try
-    mCipher.InitStr(fKey, TDCP_sha1);
+    mCipher.InitStr(fKey, TDCP_sha256);
     Result := mCipher.DecryptString(AData);
   finally
     mCipher.Free;
@@ -58,12 +58,12 @@ end;
 
 function TCryptic.Encode(const AData: String): String;
 var
-  mCipher: TDCP_rc4;
+  mCipher: TDCP_twofish;
 begin
   CheckKey;
-  mCipher := TDCP_rc4.Create(nil);
+  mCipher := TDCP_twofish.Create(nil);
   try
-    mCipher.InitStr(fKey, TDCP_sha1);
+    mCipher.InitStr(fKey, TDCP_sha256);
     Result := mCipher.EncryptString(AData);
   finally
     mCipher.Free;
