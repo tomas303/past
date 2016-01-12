@@ -28,15 +28,17 @@ type
     fBehaveBinder: IRBBehavioralBinder;
     fCriptic: ICryptic;
     fEncoded: Boolean;
+    fFactory: IPersistFactory;
   protected
-    procedure Encode(const AKey: string; const AData: IRBData);
-    procedure Decode(const AKey: string; const AData: IRBData);
+    function Encode(const AKey: string; const AData: IRBData): IRBData;
+    function Decode(const AKey: string; const AData: IRBData): IRBData;
     procedure ResetGUI;
     function Edit(const AData: IRBData): Boolean;
   published
     property Binder: IRBDataBinder read fBinder write fBinder;
     property BehaveBinder: IRBBehavioralBinder read fBehaveBinder write fBehaveBinder;
     property Cryptic: ICryptic read fCriptic write fCriptic;
+    property Factory: IPersistFactory read fFactory write fFactory;
   end;
 
 var
@@ -49,49 +51,64 @@ implementation
 { TGroupForm }
 
 procedure TGroupForm.btnEncodeClick(Sender: TObject);
+var
+  mData: IRBData;
 begin
   if fEncoded then
-    Decode(Key.Text, Binder.Data)
+    mData := Decode(Key.Text, Binder.Data)
   else
-    Encode(Key.Text, Binder.Data);
+    mData := Encode(Key.Text, Binder.Data);
+  Binder.Data := mData;
   ResetGUI;
 end;
 
-procedure TGroupForm.Encode(const AKey: string; const AData: IRBData);
+function TGroupForm.Encode(const AKey: string; const AData: IRBData): IRBData;
 var
   mPasswords: IPersistManyTPassword;
   i: integer;
+  mData: IRBData;
 begin
-  if fEncoded then
+  if fEncoded then begin
+    Result := AData;
     Exit;
+  end;
+  mData := Factory.Create(IRBData, 'TGroup') as IRBData;
+  mData.Assign(AData);
   Cryptic.Key := Akey;
-  AData.ItemByName['Key'].AsString := Cryptic.Encode(AKey);
-  mPasswords := AData.ItemByName['Passwords'].AsInterface as IPersistManyTPassword;
+  mData.ItemByName['Key'].AsString := Cryptic.Encode(AKey);
+  mPasswords := mData.ItemByName['Passwords'].AsInterface as IPersistManyTPassword;
   for i := 0 to mPasswords.Count - 1 do begin
     mPasswords[i].Login := Cryptic.Encode(mPasswords[i].Login);
     mPasswords[i].Password := Cryptic.Encode(mPasswords[i].Password);
   end;
+  Result := mData;
   fEncoded := True;
 end;
 
-procedure TGroupForm.Decode(const AKey: string; const AData: IRBData);
+function TGroupForm.Decode(const AKey: string; const AData: IRBData): IRBData;
 var
   mPasswords: IPersistManyTPassword;
   i: integer;
+  mData: IRBData;
 begin
-  if not fEncoded then
+  if not fEncoded then begin
+    Result := AData;
     Exit;
+  end;
+  mData := Factory.Create(IRBData, 'TGroup') as IRBData;
+  mData.Assign(AData);
   Cryptic.Key := AKey;
-  if Cryptic.Decode(AData.ItemByName['Key'].AsString) <> Key.Text then
+  if Cryptic.Decode(mData.ItemByName['Key'].AsString) <> Key.Text then
   begin
     Cryptic.Key := '';
     raise Exception.Create('invalid key');
   end;
-  mPasswords := AData.ItemByName['Passwords'].AsInterface as IPersistManyTPassword;
+  mPasswords := mData.ItemByName['Passwords'].AsInterface as IPersistManyTPassword;
   for i := 0 to mPasswords.Count - 1 do begin
     mPasswords[i].Login := Cryptic.Decode(mPasswords[i].Login);
     mPasswords[i].Password := Cryptic.Decode(mPasswords[i].Password);
   end;
+  Result := mData;
   fEncoded := False;
 end;
 
@@ -107,22 +124,26 @@ begin
     Passwords_bind.Enabled := True;
     btnEncode.Caption := 'Enco&de';
   end;
-  Binder.DataChange;
 end;
 
 function TGroupForm.Edit(const AData: IRBData): Boolean;
+var
+  mData: IRBData;
 begin
   BehaveBinder.Bind(Self);
   try
     try
       try
         try
-          Binder.Bind(Self, AData);
-          fEncoded := AData.ItemByName['Key'].AsString <> '';
+          mData := Factory.Create(IRBData, 'TGroup') as IRBData;
+          mData.Assign(AData);
+          Binder.Bind(Self, mData);
+          fEncoded := mData.ItemByName['Key'].AsString <> '';
           ResetGUI;
           Result := ShowModal = mrOK;
         finally
-          Encode(Key.Text, AData);
+          mData := Encode(Key.Text, mData);
+          AData.Assign(mData);
           Key.Text := '';
         end;
       finally

@@ -159,6 +159,7 @@ begin
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('Cryptic', ICryptic);
+  mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
   //
   mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
 end;
