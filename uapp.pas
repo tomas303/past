@@ -14,7 +14,7 @@ uses
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
   tvl_ibindings, tvl_iedit, tvl_ubehavebinder,
   uPasswords,
-  uCryptic, trl_icryptic;
+  uCryptic, trl_icryptic, fOpen;
 
 type
 
@@ -36,6 +36,7 @@ type
   TApp = class
   public const
     cPersistRID = 'PERSIST';
+    cCryptoPersistRID = 'CRYPTOPERSIST';
   private
     fDIC: TDIContainer;
     fDataFile: string;
@@ -45,6 +46,7 @@ type
     procedure RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
     procedure RegisterGUI;
     procedure RegisterPersist;
+    procedure RegisterCryptoPersist;
     procedure RegisterServices;
     procedure Launch;
   public
@@ -59,7 +61,7 @@ implementation
 
 procedure TKicker.Start;
 begin
-  (MainForm as IListData).List;
+  //(MainForm as IListData).List;
   MainForm.Show;
 end;
 
@@ -136,6 +138,7 @@ procedure TApp.RegisterGUI;
 var
   mReg: TDIReg;
   mPersistDIC: TDIContainer;
+  mCryptoPersistDIC: TDIContainer;
 begin
   mPersistDIC := fDIC.Locate(TDIContainer, cPersistRID);
   //
@@ -147,9 +150,9 @@ begin
   mReg := fDIC.Add(TRBBehavioralBinder, IRBBehavioralBinder);
   //
   mReg := fDIC.Add(TKicker, IGUIKicker);
-  mReg.InjectProp('MainForm', TMainForm);
+  mReg.InjectProp('MainForm', TOpenForm);
   //
-  mReg := fDIC.Add(TMainForm, fDIC.Locate(TDIOwner));
+  mReg := fDIC.Add(TMainForm, fDIC.Locate(TDIOwner), IListData, 'MainForm');
   mReg.InjectProp('Store', IPersistStore, '', mPersistDIC);
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
   mReg.InjectProp('Binder', IRBTallyBinder, 'listbox', mPersistDIC);
@@ -158,10 +161,18 @@ begin
   mReg := fDIC.Add(TGroupForm, fDIC.Locate(TDIOwner), IEditData, 'GroupForm');
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
-  mReg.InjectProp('Cryptic', ICryptic);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
   //
   mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
+  //
+  mCryptoPersistDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
+  //
+  mReg := fDIC.Add(TOpenForm, fDIC.Locate(TDIOwner));
+  mReg.InjectProp('Factory', IPersistFactory, '', mCryptoPersistDIC);
+  mReg.InjectProp('EncrytedStore', IPersistStore, '', mCryptoPersistDIC);
+  mReg.InjectProp('DecrytedStore', IPersistStore, '', mPersistDIC);
+  mReg.InjectProp('CryptedFile', fDataFile);
+  mReg.InjectProp('Cryptic', ICryptic);
+  mReg.InjectProp('MainForm', IListData, 'MainForm');
 end;
 
 procedure TApp.RegisterPersist;
@@ -196,7 +207,6 @@ begin
   mReg.InjectProp('Cache', TStoreCache);
   //
   mReg := mDIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
-  mReg.InjectProp('XMLFile', fDataFile);
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
   // factory for persist data(will work on top of cPersistRID container(which is registered in fDIC))
   mReg := mDIC.Add(TPersistFactory, IPersistFactory, cPersistRID, ckSingle);
@@ -213,9 +223,45 @@ begin
   mReg := mDIC.Add(TRBDataBinder, IRBDataBinder);
 end;
 
+procedure TApp.RegisterCryptoPersist;
+var
+  mReg: TDIReg;
+  mDIC: TDIContainer;
+begin
+  // single persist conatiner for crypted data
+  mReg := fDIC.Add(TDIContainer, cCryptoPersistRID, ckSingle);
+  mDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
+  //
+  RegisterDataClass(mDIC, TCrypto);
+  //
+  mReg := mDIC.Add(TStoreCache);
+  //
+  mReg := mDIC.Add(TPersistRef, IPersistRef);
+  mReg.InjectProp('Store', IPersistStore);
+  //
+  mReg := mDIC.Add(TPersistRefList, IPersistRefList);
+  //
+  mReg := mDIC.Add(TSIDList, ISIDList);
+  //
+  mReg := mDIC.Add(TPersistStore, IPersistStore, '', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
+  mReg.InjectProp('Cache', TStoreCache);
+  //
+  mReg := mDIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
+  mReg.InjectProp('XMLFile', fDataFile);
+  mReg.InjectProp('Factory', IPersistFactory);
+  // factory for persist data(will work on top of cPersistRID container(which is registered in fDIC))
+  mReg := mDIC.Add(TPersistFactory, IPersistFactory);
+  mReg.InjectProp('Container', TDIContainer, cCryptoPersistRID, fDIC);
+  //
+  mReg := mDIC.Add(TRBDataBinder, IRBDataBinder);
+end;
+
 procedure TApp.RegisterServices;
 begin
   RegisterPersist;
+  RegisterCryptoPersist;
   RegisterGUI;
 end;
 

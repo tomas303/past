@@ -83,8 +83,9 @@ end;
 
 procedure TMainForm.List;
 begin
-  Store.Open;
+  //Store.Open;
   Binder.Bind(lbPasswords, cDataClass);
+  ShowModal;
 end;
 
 end.

@@ -7,28 +7,10 @@ object GroupForm: TGroupForm
   ClientHeight = 400
   ClientWidth = 400
   LCLVersion = '1.7'
-  object Key: TEdit
-    Left = 64
-    Height = 21
-    Top = 8
-    Width = 242
-    Anchors = [akTop, akLeft, akRight]
-    EchoMode = emPassword
-    PasswordChar = '*'
-    TabOrder = 0
-  end
-  object lblKey: TLabel
-    Left = 8
-    Height = 15
-    Top = 8
-    Width = 21
-    Caption = 'Key'
-    ParentColor = False
-  end
   object lblCaption: TLabel
     Left = 8
     Height = 15
-    Top = 40
+    Top = 8
     Width = 46
     Caption = 'Caption'
     ParentColor = False
@@ -36,18 +18,18 @@ object GroupForm: TGroupForm
   object Caption_bind: TEdit
     Left = 64
     Height = 21
-    Top = 40
-    Width = 242
+    Top = 8
+    Width = 328
     Anchors = [akTop, akLeft, akRight]
-    TabOrder = 2
+    TabOrder = 0
   end
   object Passwords_bind: TStringGrid
     Left = 8
-    Height = 294
-    Top = 72
+    Height = 326
+    Top = 40
     Width = 386
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabOrder = 3
+    TabOrder = 1
   end
   object btnOK: TBitBtn
     Left = 185
@@ -59,7 +41,7 @@ object GroupForm: TGroupForm
     DefaultCaption = True
     Kind = bkOK
     ModalResult = 1
-    TabOrder = 4
+    TabOrder = 2
   end
   object btnCancel: TBitBtn
     Left = 294
@@ -71,16 +53,6 @@ object GroupForm: TGroupForm
     DefaultCaption = True
     Kind = bkCancel
     ModalResult = 2
-    TabOrder = 5
-  end
-  object btnEncode: TButton
-    Left = 314
-    Height = 25
-    Top = 4
-    Width = 80
-    Anchors = [akTop, akRight]
-    Caption = 'Encode'
-    OnClick = btnEncodeClick
-    TabOrder = 1
+    TabOrder = 3
   end
 end

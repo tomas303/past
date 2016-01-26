@@ -1,0 +1,57 @@
+object OpenForm: TOpenForm
+  Left = 365
+  Height = 63
+  Top = 245
+  Width = 562
+  Caption = 'PAST'
+  ClientHeight = 63
+  ClientWidth = 562
+  LCLVersion = '1.7'
+  object lblKey: TLabel
+    Left = 16
+    Height = 15
+    Top = 32
+    Width = 21
+    Caption = 'Key'
+    ParentColor = False
+  end
+  object edKey: TEdit
+    Left = 64
+    Height = 21
+    Top = 26
+    Width = 384
+    Anchors = [akTop, akLeft, akRight]
+    EchoMode = emPassword
+    PasswordChar = '*'
+    TabOrder = 1
+  end
+  object edFile: TFileNameEdit
+    Left = 64
+    Height = 21
+    Top = 2
+    Width = 463
+    FilterIndex = 0
+    HideDirectories = False
+    ButtonWidth = 23
+    NumGlyphs = 1
+    MaxLength = 0
+    TabOrder = 0
+  end
+  object lblFile: TLabel
+    Left = 16
+    Height = 15
+    Top = 8
+    Width = 19
+    Caption = 'File'
+    ParentColor = False
+  end
+  object btnOpen: TButton
+    Left = 448
+    Height = 25
+    Top = 26
+    Width = 75
+    Caption = 'Open'
+    OnClick = btnOpenClick
+    TabOrder = 2
+  end
+end

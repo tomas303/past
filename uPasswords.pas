@@ -44,7 +44,33 @@ type
     property Passwords: IPersistManyTPassword read fPasswords;
   end;
 
+  { TCrypto }
+
+  TCrypto = class
+  private
+    fData: TStream;
+  public
+    procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
+  published
+    property Data: TStream read fData write fData;
+  end;
+
 implementation
+
+{ TCrypto }
+
+procedure TCrypto.AfterConstruction;
+begin
+  inherited AfterConstruction;
+  fData := TMemoryStream.Create;
+end;
+
+procedure TCrypto.BeforeDestruction;
+begin
+  FreeAndNil(fData);
+  inherited BeforeDestruction;
+end;
 
 { TGroup }
 
