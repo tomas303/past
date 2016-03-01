@@ -24,7 +24,8 @@ type
   private
     fMainForm: TForm;
   protected
-    procedure Start;
+    procedure StartUp;
+    procedure ShutDown;
     function GetMainForm: TForm;
     procedure SetMainForm(AValue: TForm);
   published
@@ -59,10 +60,14 @@ implementation
 
 { TKicker }
 
-procedure TKicker.Start;
+procedure TKicker.StartUp;
 begin
   //(MainForm as IListData).List;
   MainForm.Show;
+end;
+
+procedure TKicker.ShutDown;
+begin
 end;
 
 function TKicker.GetMainForm: TForm;

@@ -28,7 +28,6 @@ type
     function GetCryptedFile: string;
     procedure SetCryptedFile(AValue: string);
   protected
-    procedure OLDOpenCryptedStore;
     procedure OpenEncryptedStore;
     procedure CloseEncryptedStore;
     procedure OpenDecryptedStore(const AKey: string);
@@ -57,57 +56,6 @@ implementation
 procedure TOpenForm.SetCryptedFile(AValue: string);
 begin
   edFile.Text := AValue;
-end;
-
-procedure TOpenForm.OLDOpenCryptedStore;
-var
-  mStream: TMemoryStream;
-  mData: string;
-  mList: IPersistRefList;
-begin
-  EncrytedStore.Open(CryptedFile);
-  mList := (EncrytedStore as IPersistQuery).SelectClass('TCrypto');
-  if mList.Count = 0 then
-  begin
-    fData := Factory.Create(IRBData, 'TCrypto') as IRBData;
-  end
-  else
-  begin
-    fData := mList.Data[0];
-  end;
-  mStream := TMemoryStream.Create;
-  try
-    mData := fData.ItemByName['Data'].AsString;
-    Cryptic.Key := edKey.Text;
-    if mData <> '' then begin
-      try
-        mData := Cryptic.Decode(mData);
-        mStream.Write(mData[1], Length(mData));
-        mStream.Position := 0;
-        DecrytedStore.Open(mStream);
-      except
-        DecrytedStore.Close;
-        EncrytedStore.Close;
-        ShowMessage('cannot open coded data, probably bad password');
-        Exit;
-      end;
-    end else
-      DecrytedStore.Open;
-    Hide;
-    fMainForm.List;
-    mStream.Size := 0;
-    DecrytedStore.Close(mStream);
-    SetLength(mData, mStream.Size);
-    mStream.Position := 0;
-    mStream.Read(mData[1], Length(mData));
-    mData := Cryptic.Encode(mData);
-    fData.ItemByName['Data'].AsString := mData;
-    EncrytedStore.Save(fData);
-    Show;
-  finally
-    mStream.Free;
-  end;
-  EncrytedStore.Close;
 end;
 
 procedure TOpenForm.OpenEncryptedStore;
