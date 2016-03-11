@@ -12,7 +12,7 @@ type
 
   { TOpenForm }
 
-  TOpenForm = class(TForm)
+  TOpenForm = class(TForm, IMainForm)
     btnOpen: TButton;
     edFile: TFileNameEdit;
     edKey: TEdit;
@@ -27,6 +27,11 @@ type
     fData: IRBData;
     function GetCryptedFile: string;
     procedure SetCryptedFile(AValue: string);
+  protected
+    //IMainForm
+    procedure StartUp;
+    procedure ShutDown;
+    procedure ConnectCloseHandler(OnCloseHandler: TCloseEvent);
   protected
     procedure OpenEncryptedStore;
     procedure CloseEncryptedStore;
@@ -56,6 +61,20 @@ implementation
 procedure TOpenForm.SetCryptedFile(AValue: string);
 begin
   edFile.Text := AValue;
+end;
+
+procedure TOpenForm.StartUp;
+begin
+  Show;
+end;
+
+procedure TOpenForm.ShutDown;
+begin
+end;
+
+procedure TOpenForm.ConnectCloseHandler(OnCloseHandler: TCloseEvent);
+begin
+  AddHandlerClose(OnCloseHandler);
 end;
 
 procedure TOpenForm.OpenEncryptedStore;

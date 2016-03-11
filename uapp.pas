@@ -22,14 +22,13 @@ type
 
   TKicker = class(TInterfacedObject, IGUIKicker)
   private
-    fMainForm: TForm;
+    fMainForm: IMainForm;
   protected
     procedure StartUp;
     procedure ShutDown;
-    function GetMainForm: TForm;
-    procedure SetMainForm(AValue: TForm);
+    function GetMainForm: IMainForm;
   published
-    property MainForm: TForm read GetMainForm write SetMainForm;
+    property MainForm: IMainForm read fMainForm write fMainForm;
   end;
 
   { TApp }
@@ -62,22 +61,17 @@ implementation
 
 procedure TKicker.StartUp;
 begin
-  //(MainForm as IListData).List;
-  MainForm.Show;
+  MainForm.StartUp;
 end;
 
 procedure TKicker.ShutDown;
 begin
+  MainForm.ShutDown;
 end;
 
-function TKicker.GetMainForm: TForm;
+function TKicker.GetMainForm: IMainForm;
 begin
   Result := fMainForm;
-end;
-
-procedure TKicker.SetMainForm(AValue: TForm);
-begin
-  fMainForm := AValue;
 end;
 
 { TApp }
@@ -155,7 +149,7 @@ begin
   mReg := fDIC.Add(TRBBehavioralBinder, IRBBehavioralBinder);
   //
   mReg := fDIC.Add(TKicker, IGUIKicker);
-  mReg.InjectProp('MainForm', TOpenForm);
+  mReg.InjectProp('MainForm', IMainForm);
   //
   mReg := fDIC.Add(TMainForm, fDIC.Locate(TDIOwner), IListData, 'MainForm');
   mReg.InjectProp('Store', IPersistStore, '', mPersistDIC);
@@ -171,7 +165,7 @@ begin
   //
   mCryptoPersistDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
   //
-  mReg := fDIC.Add(TOpenForm, fDIC.Locate(TDIOwner));
+  mReg := fDIC.Add(TOpenForm, fDIC.Locate(TDIOwner), IMainForm);
   mReg.InjectProp('Factory', IPersistFactory, '', mCryptoPersistDIC);
   mReg.InjectProp('EncrytedStore', IPersistStore, '', mCryptoPersistDIC);
   mReg.InjectProp('DecrytedStore', IPersistStore, '', mPersistDIC);
