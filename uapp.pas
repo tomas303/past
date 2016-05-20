@@ -13,7 +13,7 @@ uses
   trl_upersistxml,
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
   tvl_ibindings, tvl_iedit, tvl_ubehavebinder,
-  uPasswords,
+  uPasswords, uSettings,
   uCryptic, trl_icryptic, fOpen;
 
 type
@@ -37,9 +37,11 @@ type
   public const
     cPersistRID = 'PERSIST';
     cCryptoPersistRID = 'CRYPTOPERSIST';
+    cSettingsStore = 'SETTINGSSTORE';
   private
     fDIC: TDIContainer;
     fDataFile: string;
+    fSettingsFile: string;
   protected
     procedure InjectPersistRef(const AItem: IRBDataItem);
     procedure Setup;
@@ -119,6 +121,7 @@ begin
       raise Exception.Create('Cannot create directory ' + mAppDir);
   end;
   fDataFile := mAppDir + 'data.xml';
+  fSettingsFile := mAppDir + 'settings.xml';
 end;
 
 procedure TApp.RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
@@ -172,6 +175,8 @@ begin
   mReg.InjectProp('CryptedFile', fDataFile);
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('MainForm', IListData, 'MainForm');
+  mReg.InjectProp('Settings', IPersistStore, cSettingsStore, mPersistDIC);
+  mReg.InjectProp('SettingsFile', fSettingsFile);
 end;
 
 procedure TApp.RegisterPersist;
@@ -197,6 +202,8 @@ begin
   // persist data
   RegisterDataClass(mDIC, TPassword);
   RegisterDataClass(mDIC, TGroup);
+  RegisterDataClass(mDIC, TAppSettingDataFile);
+  RegisterDataClass(mDIC, TAppSetting);
   //
   mReg := mDIC.Add(TStoreCache);
   //
@@ -208,7 +215,7 @@ begin
   mReg := mDIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
   // factory for persist data(will work on top of cPersistRID container(which is registered in fDIC))
-  mReg := mDIC.Add(TPersistFactory, IPersistFactory, cPersistRID, ckSingle);
+  mReg := mDIC.Add(TPersistFactory, IPersistFactory, cPersistRID);
   mReg.InjectProp('Container', TDIContainer, cPersistRID, fDIC);
   // binders(conection between data and GUI)
   mReg := mDIC.Add(TListBoxBinder, IRBTallyBinder, 'listbox');
@@ -220,6 +227,11 @@ begin
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
   //
   mReg := mDIC.Add(TRBDataBinder, IRBDataBinder);
+  //
+  mReg := mDIC.Add(TPersistStore, IPersistStore, cSettingsStore);
+  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
+  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
+  mReg.InjectProp('Cache', TStoreCache);
 end;
 
 procedure TApp.RegisterCryptoPersist;

@@ -1,11 +1,12 @@
 object OpenForm: TOpenForm
-  Left = 365
-  Height = 63
-  Top = 245
-  Width = 562
+  Left = 525
+  Height = 58
+  Top = 221
+  Width = 531
+  ActiveControl = edKey
   Caption = 'PAST'
-  ClientHeight = 63
-  ClientWidth = 562
+  ClientHeight = 58
+  ClientWidth = 531
   LCLVersion = '1.7'
   object lblKey: TLabel
     Left = 16
@@ -23,35 +24,48 @@ object OpenForm: TOpenForm
     Anchors = [akTop, akLeft, akRight]
     EchoMode = emPassword
     PasswordChar = '*'
-    TabOrder = 1
-  end
-  object edFile: TFileNameEdit
-    Left = 64
-    Height = 21
-    Top = 2
-    Width = 463
-    FilterIndex = 0
-    HideDirectories = False
-    ButtonWidth = 23
-    NumGlyphs = 1
-    MaxLength = 0
-    TabOrder = 0
+    TabOrder = 2
   end
   object lblFile: TLabel
     Left = 16
     Height = 15
-    Top = 8
+    Top = 6
     Width = 19
     Caption = 'File'
     ParentColor = False
   end
   object btnOpen: TButton
     Left = 448
-    Height = 25
+    Height = 21
     Top = 26
     Width = 75
-    Caption = 'Open'
+    Anchors = [akTop, akRight]
+    Caption = '&Open'
     OnClick = btnOpenClick
-    TabOrder = 2
+    TabOrder = 3
+  end
+  object edFile: TComboBox
+    Left = 64
+    Height = 21
+    Top = 0
+    Width = 384
+    Anchors = [akTop, akLeft, akRight]
+    ItemHeight = 0
+    TabOrder = 0
+    Text = 'edFile'
+  end
+  object btnOpenFile: TButton
+    Left = 448
+    Height = 21
+    Top = 0
+    Width = 75
+    Anchors = [akTop, akRight]
+    Caption = '&File'
+    OnClick = btnOpenFileClick
+    TabOrder = 1
+  end
+  object dlgOpen: TOpenDialog
+    left = 352
+    top = 40
   end
 end
