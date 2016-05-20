@@ -1,27 +1,27 @@
 object MainForm: TMainForm
   Left = 556
-  Height = 150
+  Height = 200
   Top = 266
-  Width = 292
+  Width = 400
   Caption = 'password store'
-  ClientHeight = 150
-  ClientWidth = 292
+  ClientHeight = 200
+  ClientWidth = 400
   LCLVersion = '1.7'
   object lbPasswords: TListBox
     Left = 0
-    Height = 119
+    Height = 169
     Top = 0
-    Width = 294
+    Width = 402
     Anchors = [akTop, akLeft, akRight, akBottom]
     ItemHeight = 0
-    ScrollWidth = 290
+    ScrollWidth = 398
     TabOrder = 0
     TopIndex = -1
   end
   object btnAdd: TButton
-    Left = 0
+    Left = 108
     Height = 25
-    Top = 125
+    Top = 175
     Width = 75
     Anchors = [akRight, akBottom]
     Caption = '&Add'
@@ -29,9 +29,9 @@ object MainForm: TMainForm
     TabOrder = 1
   end
   object btnEdit: TButton
-    Left = 108
+    Left = 216
     Height = 25
-    Top = 125
+    Top = 175
     Width = 75
     Anchors = [akRight, akBottom]
     Caption = '&Edit'
@@ -39,9 +39,9 @@ object MainForm: TMainForm
     TabOrder = 2
   end
   object btnDelete: TButton
-    Left = 216
+    Left = 324
     Height = 25
-    Top = 125
+    Top = 175
     Width = 75
     Anchors = [akRight, akBottom]
     Caption = '&Delete'

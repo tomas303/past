@@ -13,13 +13,15 @@ type
 
   TPassword = class
   private
-    //fCaption: string;
     fLogin: string;
     fPassword: string;
+    fRemark: string;
+    fLink: string;
   published
-    //property Caption: string read fCaption write fCaption;
     property Login: string read fLogin write fLogin;
     property Password: string read fPassword write fPassword;
+    property Remark: string read fRemark write fRemark;
+    property Link: string read fLink write fLink;
   end;
 
   IPersistManyTPassword = interface(IPersistMany<TPassword>)
