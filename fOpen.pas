@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  EditBtn, Menus, trl_ipersist, trl_irttibroker, trl_icryptic, tvl_iedit;
+  EditBtn, Menus, trl_ipersist, trl_irttibroker, trl_icryptic, tvl_iedit,
+  SettingsBroker;
 
 type
 
@@ -28,9 +29,7 @@ type
     fCriptic: ICryptic;
     fMainForm: IListData;
     fData: IRBData;
-    fSettings: IPersistStore;
-    fSettingsFile: string;
-    fAppSetting: IRBData;
+    fSettingsBroker: ISettingsBroker;
     function GetCryptedFile: string;
     procedure SetCryptedFile(AValue: string);
   protected
@@ -46,15 +45,14 @@ type
     procedure EditData(const AKey: string);
     procedure LoadSettings;
     procedure SaveSettings;
-  published
+   published
     property Factory: IPersistFactory read fFactory write fFactory;
     property EncrytedStore: IPersistStore read fEncryptedStore write fEncryptedStore;
     property DecrytedStore: IPersistStore read fDecrytedStore write fDecrytedStore;
     property CryptedFile: string read GetCryptedFile write SetCryptedFile;
     property Cryptic: ICryptic read fCriptic write fCriptic;
     property MainForm: IListData read fMainForm write fMainForm;
-    property Settings: IPersistStore read fSettings write fSettings;
-    property SettingsFile: string read fSettingsFile write fSettingsFile;
+    property SettingsBroker: ISettingsBroker read fSettingsBroker write fSettingsBroker;
   end;
 
   EOpenFormException = class(Exception);
@@ -75,6 +73,7 @@ end;
 
 procedure TOpenForm.StartUp;
 begin
+  SettingsBroker.StartUp;
   LoadSettings;
   Show;
 end;
@@ -82,6 +81,7 @@ end;
 procedure TOpenForm.ShutDown;
 begin
   SaveSettings;
+  SettingsBroker.ShutDown;
 end;
 
 procedure TOpenForm.ConnectCloseHandler(OnCloseHandler: TCloseEvent);
@@ -171,45 +171,19 @@ begin
 end;
 
 procedure TOpenForm.LoadSettings;
-var
-  m: IPersistRefList;
-  mDataFiles: IPersistMany;
-  i: integer;
 begin
-  fSettings.Open(SettingsFile);
-  m := (fSettings as IPersistQuery).SelectClass('TAppSetting');
-  if m.Count = 0 then begin
-    fAppSetting := fSettings.New('TAppSetting');
-  end else begin
-    fAppSetting := m.Data[0];
-  end;
-  edFile.Items.Clear;
-  mDataFiles := fAppSetting.ItemByName['DataFiles'].AsInterface as IPersistMany;
-  for i := 0 to mDataFiles.Count - 1 do begin
-    edFile.Items.Insert(0, mDataFiles.AsPersistData[i].ItemByName['DataFile'].AsString);
-  end;
+  SettingsBroker.LoadStrings('DataFiles', edFile.Items);
   if edFile.Items.Count > 0 then
-    edFile.ItemIndex :=0 ;
+    edFile.ItemIndex := 0;
+  SettingsBroker.LoadWindow('Windows', Self);
 end;
 
 procedure TOpenForm.SaveSettings;
-var
-  mDataFiles: IPersistMany;
-  mInd: integer;
 begin
-  mDataFiles := fAppSetting.ItemByName['DataFiles'].AsInterface as IPersistMany;
-  mDataFiles.Count := mDataFiles.Count + 1;
-  mDataFiles.AsPersistData[mDataFiles.Count - 1].ItemByName['DataFile'].AsString := edFile.Text;
-  mInd := 0;
-  while mInd < mDataFiles.Count - 1 do
-   if SameText(edFile.Text, mDataFiles.AsPersistData[mInd].ItemByName['DataFile'].AsString) then
-     mDataFiles.Delete(mInd)
-   else
-     inc(mInd);
-  while mDataFiles.Count > 10 do
-    mDataFiles.Delete(0);
-  fSettings.Save(fAppSetting);
+  SettingsBroker.SaveStrings('DataFiles', edFile.Items, edFile.Text);
+  SettingsBroker.SaveWindow('Windows', Self);
 end;
+
 
 procedure TOpenForm.btnOpenClick(Sender: TObject);
 begin

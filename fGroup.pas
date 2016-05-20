@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   Grids, Buttons, Menus, tvl_iedit, trl_irttibroker, tvl_ibindings,
-  trl_icryptic, trl_ipersist, uPasswords;
+  trl_icryptic, trl_ipersist, uPasswords, SettingsBroker;
 
 type
 
@@ -22,11 +22,13 @@ type
   private
     fBinder: IRBDataBinder;
     fBehaveBinder: IRBBehavioralBinder;
+    fSettingsBroker: ISettingsBroker;
   protected
     function Edit(const AData: IRBData): Boolean;
   published
     property Binder: IRBDataBinder read fBinder write fBinder;
     property BehaveBinder: IRBBehavioralBinder read fBehaveBinder write fBehaveBinder;
+    property SettingsBroker: ISettingsBroker read fSettingsBroker write fSettingsBroker;
   end;
 
 var
@@ -46,7 +48,9 @@ begin
   try
     Binder.Bind(Self, AData);
     try
+      SettingsBroker.LoadWindow('Windows', Self);
       Result := ShowModal = mrOK;
+      SettingsBroker.SaveWindow('Windows', Self);
     finally
       Binder.Unbind;
     end;

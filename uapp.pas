@@ -14,6 +14,7 @@ uses
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
   tvl_ibindings, tvl_iedit, tvl_ubehavebinder,
   uPasswords, uSettings,
+  SettingsBroker, uSettingsBroker,
   uCryptic, trl_icryptic, fOpen;
 
 type
@@ -159,10 +160,12 @@ begin
   mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
   mReg.InjectProp('Binder', IRBTallyBinder, 'listbox', mPersistDIC);
   mReg.InjectProp('Edit', IEditData, 'GroupForm');
+  mReg.InjectProp('SettingsBroker', ISettingsBroker);
   //
   mReg := fDIC.Add(TGroupForm, fDIC.Locate(TDIOwner), IEditData, 'GroupForm');
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
+  mReg.InjectProp('SettingsBroker', ISettingsBroker);
   //
   mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
   //
@@ -175,8 +178,11 @@ begin
   mReg.InjectProp('CryptedFile', fDataFile);
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('MainForm', IListData, 'MainForm');
-  mReg.InjectProp('Settings', IPersistStore, cSettingsStore, mPersistDIC);
-  mReg.InjectProp('SettingsFile', fSettingsFile);
+  mReg.InjectProp('SettingsBroker', ISettingsBroker);
+  //
+  mReg := fDIC.Add(TSettingsBroker, ISettingsBroker, '', ckSingle);
+  mReg.InjectProp('Store', IPersistStore, cSettingsStore, mPersistDIC);
+  mReg.InjectProp('FileName', fSettingsFile);
 end;
 
 procedure TApp.RegisterPersist;
@@ -202,8 +208,8 @@ begin
   // persist data
   RegisterDataClass(mDIC, TPassword);
   RegisterDataClass(mDIC, TGroup);
-  RegisterDataClass(mDIC, TAppSettingDataFile);
   RegisterDataClass(mDIC, TAppSetting);
+  RegisterDataClass(mDIC, TAppSettingWindow);
   //
   mReg := mDIC.Add(TStoreCache);
   //
