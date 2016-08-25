@@ -11,6 +11,7 @@ uses
   trl_dicontainer,
   trl_irttibroker, trl_urttibroker,
   trl_upersistxml,
+  trl_ilog, trl_ulazlog,
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
   tvl_ibindings, tvl_iedit, tvl_ubehavebinder,
   uPasswords, uSettings,
@@ -43,10 +44,12 @@ type
     fDIC: TDIContainer;
     fDataFile: string;
     fSettingsFile: string;
+    fLogFile: string;
   protected
     procedure InjectPersistRef(const AItem: IRBDataItem);
     procedure Setup;
     procedure RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
+    procedure RegisterTools;
     procedure RegisterGUI;
     procedure RegisterPersist;
     procedure RegisterCryptoPersist;
@@ -123,6 +126,7 @@ begin
   end;
   fDataFile := mAppDir + 'data.xml';
   fSettingsFile := mAppDir + 'settings.xml';
+  fLogFile := mAppDir + 'log.txt';
 end;
 
 procedure TApp.RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
@@ -135,6 +139,19 @@ begin
   // data envelop for persist class
   mReg := ADIC.Add(TRBData, IRBData, AClass.ClassName);
   mReg.InjectProp('UnderObject', AClass);
+end;
+
+procedure TApp.RegisterTools;
+var
+  mReg: TDIReg;
+begin
+  mReg := fDIC.Add(TLazLog, ILog, '', ckSingle);
+  mReg.InjectProp('LogName', fLogFile);
+  mReg.InjectProp('UseStdOut', False);
+  mReg.InjectProp('CloseLogFileBetweenWrites', True);
+  //
+  mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
+  mReg.InjectProp('Log', ILog);
 end;
 
 procedure TApp.RegisterGUI;
@@ -166,8 +183,6 @@ begin
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('SettingsBroker', ISettingsBroker);
-  //
-  mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
   //
   mCryptoPersistDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
   //
@@ -277,6 +292,7 @@ end;
 
 procedure TApp.RegisterServices;
 begin
+  RegisterTools;
   RegisterPersist;
   RegisterCryptoPersist;
   RegisterGUI;
