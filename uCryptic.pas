@@ -116,7 +116,10 @@ end;
 
 procedure TCryptic.SetKey(AValue: string);
 begin
-  fKey := AValue;
+  if fKey <> AValue then begin
+    Log.DebugLn('key changed from %s to %s', [fKey, AValue]);
+    fKey := AValue;
+  end;
 end;
 
 end.
