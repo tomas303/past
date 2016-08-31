@@ -183,6 +183,7 @@ begin
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('SettingsBroker', ISettingsBroker);
+  mReg.InjectProp('Log', ILog);
   //
   mCryptoPersistDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
   //
