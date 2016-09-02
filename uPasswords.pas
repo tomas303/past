@@ -24,7 +24,7 @@ type
     property Link: string read fLink write fLink;
   end;
 
-  IPersistManyTPassword = interface(IPersistMany<TPassword>)
+  IPersistManyTPassword = interface(IPersistManyItems<TPassword>)
   ['{9B271144-86D0-49FD-8EBC-40FEF2A287E2}']
   end;
 

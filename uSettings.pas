@@ -23,7 +23,7 @@ type
     property Height: integer read fHeight write fHeight;
   end;
 
-  IPersistManyTAppSettingWindow = interface(IPersistMany<TAppSettingWindow>)
+  IPersistManyTAppSettingWindow = interface(IPersistManyItems<TAppSettingWindow>)
   ['{9E1FC351-E39B-46C6-B44E-E9617142684E}']
   end;
 
