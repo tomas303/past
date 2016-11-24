@@ -8,6 +8,7 @@ uses
   Classes, SysUtils,
   forms, fMain, fGroup,
   tal_uapp, tal_uguilauncher, tal_ilauncher,
+  tal_uwindowlog,
   trl_ipersist,  trl_upersist, trl_upersiststore,
   trl_dicontainer,
   trl_irttibroker, trl_urttibroker,
@@ -81,10 +82,7 @@ procedure TApp.RegisterTools;
 var
   mReg: TDIReg;
 begin
-  mReg := DIC.Add(TLazLog, ILog, '', ckSingle);
-  mReg.InjectProp('LogName', LogFile);
-  mReg.InjectProp('UseStdOut', False);
-  mReg.InjectProp('CloseLogFileBetweenWrites', True);
+  mReg := DIC.Add(TWindowLog, ILog, '', ckSingle);
   //
   mReg := DIC.Add(TCryptic, ICryptic, '', ckSingle);
   mReg.InjectProp('Log', ILog);
