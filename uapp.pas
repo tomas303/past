@@ -29,6 +29,8 @@ type
     cCryptoPersistRID = 'CRYPTOPERSIST';
     cSettingsStore = 'SETTINGSSTORE';
   protected
+    function CreateMainFormInstance: TObject;
+  protected
     procedure RegisterTools;
     procedure RegisterGUI;
     procedure RegisterPersist;
@@ -39,6 +41,11 @@ type
 implementation
 
 { TApp }
+
+function TApp.CreateMainFormInstance: TObject;
+begin
+  Application.CreateForm(TOpenForm, Result);
+end;
 
 procedure TApp.RegisterTools;
 var
@@ -83,7 +90,7 @@ begin
   //
   mCryptoPersistDIC := DIC.Locate(TDIContainer, cCryptoPersistRID);
   //
-  mReg := DIC.Add(TOpenForm, DIC.Locate(TDIOwner), IMainForm);
+  mReg := DIC.Add(CreateMainFormInstance, IMainForm);
   mReg.InjectProp('Factory', IPersistFactory, '', mCryptoPersistDIC);
   mReg.InjectProp('EncrytedStore', IPersistStore, '', mCryptoPersistDIC);
   mReg.InjectProp('DecrytedStore', IPersistStore, '', mPersistDIC);
