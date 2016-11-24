@@ -41,6 +41,7 @@ object OpenForm: TOpenForm
     Width = 75
     Anchors = [akTop, akRight]
     Caption = '&Open'
+    Default = True
     OnClick = btnOpenClick
     TabOrder = 3
   end
