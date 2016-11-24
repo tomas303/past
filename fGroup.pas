@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  Grids, Buttons, Menus, tvl_iedit, trl_irttibroker, tvl_ibindings,
+  Grids, Buttons, Menus, tal_iedit, trl_irttibroker, tvl_ibindings,
   trl_icryptic, trl_ipersist, uPasswords, SettingsBroker, LCLIntf, trl_ilog;
 
 type
@@ -60,7 +60,7 @@ function TGroupForm.Edit(const AData: IRBData): Boolean;
 begin
   BehaveBinder.Bind(Self);
   try
-    Binder.Bind(Self, AData);
+    Binder.BindArea(Self, AData);
     try
       SettingsBroker.LoadWindow('Windows', Self);
       Result := ShowModal = mrOK;

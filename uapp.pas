@@ -5,152 +5,51 @@ unit uapp;
 interface
 
 uses
-  Classes, SysUtils, tvl_uapplaunch,
+  Classes, SysUtils,
   forms, fMain, fGroup,
+  tal_uapp, tal_uguilauncher, tal_ilauncher,
   trl_ipersist,  trl_upersist, trl_upersiststore,
   trl_dicontainer,
   trl_irttibroker, trl_urttibroker,
   trl_upersistxml,
   trl_ilog, trl_ulazlog,
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
-  tvl_ibindings, tvl_iedit, tvl_ubehavebinder,
+  tvl_ibindings, tal_iedit, tvl_ubehavebinder,
   uPasswords, uSettings,
   SettingsBroker, uSettingsBroker,
   uCryptic, trl_icryptic, fOpen;
 
 type
 
-  { TKicker }
-
-  TKicker = class(TInterfacedObject, IGUIKicker)
-  private
-    fMainForm: IMainForm;
-  protected
-    procedure StartUp;
-    procedure ShutDown;
-    function GetMainForm: IMainForm;
-  published
-    property MainForm: IMainForm read fMainForm write fMainForm;
-  end;
-
   { TApp }
 
-  TApp = class
+  TApp = class(TALApp)
   public const
     cPersistRID = 'PERSIST';
     cCryptoPersistRID = 'CRYPTOPERSIST';
     cSettingsStore = 'SETTINGSSTORE';
-  private
-    fDIC: TDIContainer;
-    fDataFile: string;
-    fSettingsFile: string;
-    fLogFile: string;
   protected
-    procedure InjectPersistRef(const AItem: IRBDataItem);
-    procedure Setup;
-    procedure RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
     procedure RegisterTools;
     procedure RegisterGUI;
     procedure RegisterPersist;
     procedure RegisterCryptoPersist;
-    procedure RegisterServices;
-    procedure Launch;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    class procedure Go;
+    procedure RegisterAppServices; override;
   end;
 
 implementation
 
-{ TKicker }
-
-procedure TKicker.StartUp;
-begin
-  MainForm.StartUp;
-end;
-
-procedure TKicker.ShutDown;
-begin
-  MainForm.ShutDown;
-end;
-
-function TKicker.GetMainForm: IMainForm;
-begin
-  Result := fMainForm;
-end;
-
 { TApp }
-
-procedure TApp.InjectPersistRef(const AItem: IRBDataItem);
-var
-  mPersistDIC: TDIContainer;
-begin
-  if AItem.IsInterface and Supports(AItem.AsInterface, IPersistRef) then
-  begin
-    // IPersistRef need resolve data via Store
-    mPersistDIC := fDIC.Locate(TDIContainer, cPersistRID);
-    (AItem.AsInterface as IPersistRef).Store := mPersistDIC.Locate(IPersistStore);
-  end
-  else
-  if AItem.IsInterface and Supports(AItem.AsInterface, IPersistManyRefs) then
-  begin
-    // need to create IPersistRef members
-    mPersistDIC := fDIC.Locate(TDIContainer, cPersistRID);
-    (AItem.AsInterface as IPersistManyRefs).Factory := mPersistDIC.Locate(IPersistFactory, cPersistRID);
-  end;
-end;
-
-procedure TApp.Setup;
-var
-  mAppDir, mSubdir, mExt: string;
-begin
-  if Paramcount > 0 then
-    mAppDir := ParamStr(1)
-  else
-  begin
-    mSubdir := '.' + ExtractFileName(ParamStr(0));
-    mExt := ExtractFileExt(ParamStr(0));
-    mSubDir := copy(mSubDir, 1, Length(mSubdir) - Length(mExt));
-    {$IFDEF UNIX}
-    mAppDir := GetEnvironmentVariable('HOME') + PathDelim + mSubdir + PathDelim;
-    {$ENDIF UNIX}
-    {$IFDEF WINDOWS}
-    mAppDir := GetEnvironmentVariable('APPDATA') + PathDelim + mSubdir + PathDelim;
-    {$ENDIF WINDOWS}
-  end;
-  if not DirectoryExists(mAppDir) then
-  begin
-    if not ForceDirectories(mAppDir) then
-      raise Exception.Create('Cannot create directory ' + mAppDir);
-  end;
-  fDataFile := mAppDir + 'data.xml';
-  fSettingsFile := mAppDir + 'settings.xml';
-  fLogFile := mAppDir + 'log.txt';
-end;
-
-procedure TApp.RegisterDataClass(ADIC: TDIContainer; AClass: TClass);
-var
-  mReg: TDIReg;
-begin
-  // persist class
-  mReg := ADIC.Add(AClass);
-  mReg.InjectProp('', InjectPersistRef);
-  // data envelop for persist class
-  mReg := ADIC.Add(TRBData, IRBData, AClass.ClassName);
-  mReg.InjectProp('UnderObject', AClass);
-end;
 
 procedure TApp.RegisterTools;
 var
   mReg: TDIReg;
 begin
-  mReg := fDIC.Add(TLazLog, ILog, '', ckSingle);
-  mReg.InjectProp('LogName', fLogFile);
+  mReg := DIC.Add(TLazLog, ILog, '', ckSingle);
+  mReg.InjectProp('LogName', LogFile);
   mReg.InjectProp('UseStdOut', False);
   mReg.InjectProp('CloseLogFileBetweenWrites', True);
   //
-  mReg := fDIC.Add(TCryptic, ICryptic, '', ckSingle);
+  mReg := DIC.Add(TCryptic, ICryptic, '', ckSingle);
   mReg.InjectProp('Log', ILog);
 end;
 
@@ -160,45 +59,42 @@ var
   mPersistDIC: TDIContainer;
   mCryptoPersistDIC: TDIContainer;
 begin
-  mPersistDIC := fDIC.Locate(TDIContainer, cPersistRID);
+  mPersistDIC := DIC.Locate(TDIContainer, cPersistRID);
   //
-  mReg := fDIC.Add(TDIOwner, '', ckSingle);
+  mReg := DIC.Add(TDIOwner, '', ckSingle);
   //
-  mReg := fDIC.Add(TGUILauncher, '', ckSingle);
-  mReg.InjectProp('Kicker', IGUIKicker);
-  //
-  mReg := fDIC.Add(TRBBehavioralBinder, IRBBehavioralBinder);
-  //
-  mReg := fDIC.Add(TKicker, IGUIKicker);
+  mReg := DIC.Add(TGUILauncher, ILauncher);
   mReg.InjectProp('MainForm', IMainForm);
   //
-  mReg := fDIC.Add(TMainForm, fDIC.Locate(TDIOwner), IListData, 'MainForm');
+  mReg := DIC.Add(TRBBehavioralBinder, IRBBehavioralBinder);
+  //
+  mReg := DIC.Add(TMainForm, DIC.Locate(TDIOwner), IListData, 'MainForm');
   mReg.InjectProp('Store', IPersistStore, '', mPersistDIC);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID, mPersistDIC);
+  mReg.InjectProp('Factory', IPersistFactory, '', mPersistDIC);
   mReg.InjectProp('Binder', IRBTallyBinder, 'listbox', mPersistDIC);
   mReg.InjectProp('Edit', IEditData, 'GroupForm');
   mReg.InjectProp('SettingsBroker', ISettingsBroker);
   //
-  mReg := fDIC.Add(TGroupForm, fDIC.Locate(TDIOwner), IEditData, 'GroupForm');
+  mReg := DIC.Add(TGroupForm, DIC.Locate(TDIOwner), IEditData, 'GroupForm');
   mReg.InjectProp('Binder', IRBDataBinder, '', mPersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('SettingsBroker', ISettingsBroker);
   mReg.InjectProp('Log', ILog);
   //
-  mCryptoPersistDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
+  mCryptoPersistDIC := DIC.Locate(TDIContainer, cCryptoPersistRID);
   //
-  mReg := fDIC.Add(TOpenForm, fDIC.Locate(TDIOwner), IMainForm);
+  mReg := DIC.Add(TOpenForm, DIC.Locate(TDIOwner), IMainForm);
   mReg.InjectProp('Factory', IPersistFactory, '', mCryptoPersistDIC);
   mReg.InjectProp('EncrytedStore', IPersistStore, '', mCryptoPersistDIC);
   mReg.InjectProp('DecrytedStore', IPersistStore, '', mPersistDIC);
-  mReg.InjectProp('CryptedFile', fDataFile);
+  mReg.InjectProp('CryptedFile', DataFile);
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('MainForm', IListData, 'MainForm');
   mReg.InjectProp('SettingsBroker', ISettingsBroker);
   //
-  mReg := fDIC.Add(TSettingsBroker, ISettingsBroker, '', ckSingle);
+  mReg := DIC.Add(TSettingsBroker, ISettingsBroker, '', ckSingle);
   mReg.InjectProp('Store', IPersistStore, cSettingsStore, mPersistDIC);
-  mReg.InjectProp('FileName', fSettingsFile);
+  mReg.InjectProp('FileName', SettingsFile);
 end;
 
 procedure TApp.RegisterPersist;
@@ -207,8 +103,8 @@ var
   mDIC: TDIContainer;
 begin
   // single persist conatiner
-  mReg := fDIC.Add(TDIContainer, cPersistRID, ckSingle);
-  mDIC := fDIC.Locate(TDIContainer, cPersistRID);
+  mReg := DIC.Add(TDIContainer, cPersistRID, ckSingle);
+  mDIC := DIC.Locate(TDIContainer, cPersistRID);
   //
   mReg := mDIC.Add(TRBData, IRBData);
   //
@@ -230,28 +126,28 @@ begin
   mReg := mDIC.Add(TStoreCache);
   //
   mReg := mDIC.Add(TPersistStore, IPersistStore, '', ckSingle);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
+  mReg.InjectProp('Factory', IPersistFactory);
   mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
   mReg.InjectProp('Cache', TStoreCache);
   //
   mReg := mDIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
-  // factory for persist data(will work on top of cPersistRID container(which is registered in fDIC))
-  mReg := mDIC.Add(TPersistFactory, IPersistFactory, cPersistRID);
-  mReg.InjectProp('Container', TDIContainer, cPersistRID, fDIC);
+  mReg.InjectProp('Factory', IPersistFactory);
+  // factory for persist data(will work on top of cPersistRID container(which is registered in DIC))
+  mReg := mDIC.Add(TPersistFactory, IPersistFactory);
+  mReg.InjectProp('Container', TDIContainer, cPersistRID, DIC);
   // binders(conection between data and GUI)
   mReg := mDIC.Add(TListBoxBinder, IRBTallyBinder, 'listbox');
   mReg.InjectProp('Store', IPersistStore);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
+  mReg.InjectProp('Factory', IPersistFactory);
   //
   mReg := mDIC.Add(TDrawGridBinder, IRBTallyBinder, 'drawgrid');
   mReg.InjectProp('Store', IPersistStore);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
+  mReg.InjectProp('Factory', IPersistFactory);
   //
   mReg := mDIC.Add(TRBDataBinder, IRBDataBinder);
   //
   mReg := mDIC.Add(TPersistStore, IPersistStore, cSettingsStore);
-  mReg.InjectProp('Factory', IPersistFactory, cPersistRID);
+  mReg.InjectProp('Factory', IPersistFactory);
   mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
   mReg.InjectProp('Cache', TStoreCache);
 end;
@@ -262,8 +158,8 @@ var
   mDIC: TDIContainer;
 begin
   // single persist conatiner for crypted data
-  mReg := fDIC.Add(TDIContainer, cCryptoPersistRID, ckSingle);
-  mDIC := fDIC.Locate(TDIContainer, cCryptoPersistRID);
+  mReg := DIC.Add(TDIContainer, cCryptoPersistRID, ckSingle);
+  mDIC := DIC.Locate(TDIContainer, cCryptoPersistRID);
   //
   RegisterDataClass(mDIC, TCrypto);
   //
@@ -282,54 +178,22 @@ begin
   mReg.InjectProp('Cache', TStoreCache);
   //
   mReg := mDIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
-  mReg.InjectProp('XMLFile', fDataFile);
+  mReg.InjectProp('XMLFile', DataFile);
   mReg.InjectProp('Factory', IPersistFactory);
-  // factory for persist data(will work on top of cPersistRID container(which is registered in fDIC))
+  // factory for persist data(will work on top of cPersistRID container(which is registered in DIC))
   mReg := mDIC.Add(TPersistFactory, IPersistFactory);
-  mReg.InjectProp('Container', TDIContainer, cCryptoPersistRID, fDIC);
+  mReg.InjectProp('Container', TDIContainer, cCryptoPersistRID, DIC);
   //
   mReg := mDIC.Add(TRBDataBinder, IRBDataBinder);
 end;
 
-procedure TApp.RegisterServices;
+procedure TApp.RegisterAppServices;
 begin
+  inherited;
   RegisterTools;
   RegisterPersist;
   RegisterCryptoPersist;
   RegisterGUI;
-end;
-
-procedure TApp.Launch;
-var
-  mGUILauncher: TGUILauncher;
-begin
-  mGUILauncher := fDIC.Locate(TGUILauncher);
-  mGUILauncher.Launch;
-end;
-
-constructor TApp.Create;
-begin
-  fDIC := TDIContainer.Create;
-end;
-
-destructor TApp.Destroy;
-begin
-  FreeAndNil(fDIC);
-  inherited Destroy;
-end;
-
-class procedure TApp.Go;
-var
-  mApp: TApp;
-begin
-  mApp := TApp.Create;
-  try
-    mApp.Setup;
-    mApp.RegisterServices;
-    mApp.Launch;
-  finally
-    mApp.Free;
-  end;
 end;
 
 end.

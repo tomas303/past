@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   trl_irttibroker, trl_ifactory, trl_ipersist,
-  tvl_iedit, tvl_ibindings, trl_icryptic, SettingsBroker;
+  tal_iedit, tvl_ibindings, trl_icryptic, SettingsBroker;
 
 type
 
