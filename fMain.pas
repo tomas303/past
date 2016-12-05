@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   trl_irttibroker, trl_ifactory, trl_ipersist,
-  tal_iedit, tvl_ibindings, trl_icryptic, SettingsBroker;
+  tal_iedit, tvl_ibindings, trl_icryptic, tal_ihistorysettings;
 
 type
 
@@ -26,7 +26,7 @@ type
     fStore: IPersistStore;
     fBinder: IRBTallyBinder;
     fEdit: IEditData;
-    fSettingsBroker: ISettingsBroker;
+    fHistorySettings: IHistorySettings;
   protected
     procedure List;
   public const
@@ -36,7 +36,7 @@ type
     property Store: IPersistStore read fStore write fStore;
     property Binder: IRBTallyBinder read fBinder write fBinder;
     property Edit: IEditData read fEdit write fEdit;
-    property SettingsBroker: ISettingsBroker read fSettingsBroker write fSettingsBroker;
+    property HistorySettings: IHistorySettings read fHistorySettings write fHistorySettings;
   end;
 
 implementation
@@ -85,10 +85,10 @@ end;
 
 procedure TMainForm.List;
 begin
-  SettingsBroker.LoadWindow('Windows', Self);
+  HistorySettings.Load(Self);
   Binder.Bind(lbPasswords, cDataClass);
   ShowModal;
-  SettingsBroker.SaveWindow('Windows', Self);
+  HistorySettings.Save(Self);
 end;
 
 end.

@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   EditBtn, Menus, trl_ipersist, trl_irttibroker, trl_icryptic, tal_iedit,
-  SettingsBroker, tal_ilauncher;
+  tal_ilauncher, tal_ihistorysettings;
 
 type
 
@@ -29,7 +29,7 @@ type
     fCriptic: ICryptic;
     fMainForm: IListData;
     fData: IRBData;
-    fSettingsBroker: ISettingsBroker;
+    fHistorySettings: IHistorySettings;
     function GetCryptedFile: string;
     procedure SetCryptedFile(AValue: string);
   protected
@@ -43,8 +43,6 @@ type
     procedure OpenDecryptedStore(const AKey: string);
     procedure CloseDecryptedStore;
     procedure EditData(const AKey: string);
-    procedure LoadSettings;
-    procedure SaveSettings;
    published
     property Factory: IPersistFactory read fFactory write fFactory;
     property EncrytedStore: IPersistStore read fEncryptedStore write fEncryptedStore;
@@ -52,7 +50,7 @@ type
     property CryptedFile: string read GetCryptedFile write SetCryptedFile;
     property Cryptic: ICryptic read fCriptic write fCriptic;
     property MainForm: IListData read fMainForm write fMainForm;
-    property SettingsBroker: ISettingsBroker read fSettingsBroker write fSettingsBroker;
+    property HistorySettings: IHistorySettings read fHistorySettings write fHistorySettings;
   end;
 
   EOpenFormException = class(Exception);
@@ -73,15 +71,13 @@ end;
 
 procedure TOpenForm.StartUp;
 begin
-  SettingsBroker.StartUp;
-  LoadSettings;
+  HistorySettings.Load(Self);
   Show;
 end;
 
 procedure TOpenForm.ShutDown;
 begin
-  SaveSettings;
-  SettingsBroker.ShutDown;
+  HistorySettings.Save(Self);
 end;
 
 procedure TOpenForm.ConnectCloseHandler(OnCloseHandler: TCloseEvent);
@@ -169,21 +165,6 @@ begin
     CloseEncryptedStore;
   end;
 end;
-
-procedure TOpenForm.LoadSettings;
-begin
-  SettingsBroker.LoadStrings('DataFiles', edFile.Items);
-  if edFile.Items.Count > 0 then
-    edFile.ItemIndex := 0;
-  SettingsBroker.LoadWindow('Windows', Self);
-end;
-
-procedure TOpenForm.SaveSettings;
-begin
-  SettingsBroker.SaveStrings('DataFiles', edFile.Items, edFile.Text);
-  SettingsBroker.SaveWindow('Windows', Self);
-end;
-
 
 procedure TOpenForm.btnOpenClick(Sender: TObject);
 begin

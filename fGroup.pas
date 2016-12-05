@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   Grids, Buttons, Menus, tal_iedit, trl_irttibroker, tvl_ibindings,
-  trl_icryptic, trl_ipersist, uPasswords, SettingsBroker, LCLIntf, trl_ilog;
+  trl_icryptic, trl_ipersist, uPasswords, tal_ihistorysettings, LCLIntf, trl_ilog;
 
 type
 
@@ -24,14 +24,14 @@ type
   private
     fBinder: IRBDataBinder;
     fBehaveBinder: IRBBehavioralBinder;
-    fSettingsBroker: ISettingsBroker;
+    fHistorySettings: IHistorySettings;
     fLog: ILog;
   protected
     function Edit(const AData: IRBData): Boolean;
   published
     property Binder: IRBDataBinder read fBinder write fBinder;
     property BehaveBinder: IRBBehavioralBinder read fBehaveBinder write fBehaveBinder;
-    property SettingsBroker: ISettingsBroker read fSettingsBroker write fSettingsBroker;
+    property HistorySettings: IHistorySettings read fHistorySettings write fHistorySettings;
     property Log: ILog read fLog write fLog;
   end;
 
@@ -62,9 +62,9 @@ begin
   try
     Binder.BindArea(Self, AData);
     try
-      SettingsBroker.LoadWindow('Windows', Self);
+      HistorySettings.Load(Self);
       Result := ShowModal = mrOK;
-      SettingsBroker.SaveWindow('Windows', Self);
+      HistorySettings.Save(Self);
     finally
       Binder.Unbind;
     end;

@@ -16,9 +16,9 @@ uses
   trl_ilog, trl_ulazlog,
   tvl_udatabinder, tvl_udatabinders, tvl_utallybinders,
   tvl_ibindings, tal_iedit, tvl_ubehavebinder,
-  uPasswords, uSettings,
-  SettingsBroker, uSettingsBroker,
-  uCryptic, trl_icryptic, fOpen;
+  uPasswords,
+  uCryptic, trl_icryptic, fOpen,
+  tal_ihistorysettings;
 
 type
 
@@ -28,19 +28,23 @@ type
   public const
     cPersistRID = 'PERSIST';
     cCryptoPersistRID = 'CRYPTOPERSIST';
-    cSettingsStore = 'SETTINGSSTORE';
+    cSettingsRID = 'SETTINGS';
   protected
     fPersistDIC: TDIContainer;
     fCryptoPersistDIC: TDIContainer;
+    fSettingsDIC: TDIContainer;
     function GetCryptoPersistDIC: TDIContainer;
     function GetPersistDIC: TDIContainer;
+    function GetSettingsDIC: TDIContainer;
     property PersistDIC: TDIContainer read GetPersistDIC;
     property CryptoPersistDIC: TDIContainer read GetCryptoPersistDIC;
+    property SettingsDIC: TDIContainer read GetSettingsDIC;
   protected
     function CreateMainFormInstance: TObject;
   protected
     procedure RegisterDICs;
     procedure RegisterTools;
+    procedure RegisterSettings;
     procedure RegisterGUI;
     procedure RegisterPersist;
     procedure RegisterCryptoPersist;
@@ -67,6 +71,14 @@ begin
   Result := fPersistDIC;
 end;
 
+function TApp.GetSettingsDIC: TDIContainer;
+begin
+  if fSettingsDIC = nil then begin
+    fSettingsDIC := DIC.Locate(TDIContainer, cSettingsRID);
+  end;
+  Result := fSettingsDIC;
+end;
+
 function TApp.CreateMainFormInstance: TObject;
 begin
   Application.CreateForm(TOpenForm, Result);
@@ -76,6 +88,7 @@ procedure TApp.RegisterDICs;
 begin
   DIC.Add(TDIContainer, cPersistRID, ckSingle);
   DIC.Add(TDIContainer, cCryptoPersistRID, ckSingle);
+  DIC.Add(TDIContainer, cSettingsRID, ckSingle);
 end;
 
 procedure TApp.RegisterTools;
@@ -86,6 +99,39 @@ begin
   //
   mReg := DIC.Add(TCryptic, ICryptic, '', ckSingle);
   mReg.InjectProp('Log', ILog);
+end;
+
+procedure TApp.RegisterSettings;
+var
+  mReg: TDIReg;
+begin
+  mReg := SettingsDIC.Add(TStoreCache);
+  //
+  mReg := SettingsDIC.Add(TRBData, IRBData);
+  //
+  mReg := SettingsDIC.Add(TSIDList, ISIDList);
+  //
+  mReg := SettingsDIC.Add(TPersistRef, IPersistRef);
+  mReg.InjectProp('Store', IPersistStore);
+  //
+  mReg := SettingsDIC.Add(TPersistManyRefs, IPersistManyRefs);
+  mReg.InjectProp('Store', IPersistStore);
+  //
+  mReg := SettingsDIC.Add(TPersistRefList, IPersistRefList);
+  //
+  mReg := SettingsDIC.Add(TPersistStore, IPersistStore, '', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+  mReg.InjectProp('Device', IPersistStoreDevice);
+  mReg.InjectProp('Cache', TStoreCache);
+  //
+  mReg := SettingsDIC.Add(TXmlStore, IPersistStoreDevice);
+  mReg.InjectProp('XMLFile', SettingsFile);
+  mReg.InjectProp('Factory', IPersistFactory);
+  //
+  mReg := SettingsDIC.Add(TPersistFactory, IPersistFactory);
+  mReg.InjectProp('Container', TDIContainer, cSettingsRID, DIC);
+  //
+  RegisterHistorySettings(SettingsDIC);
 end;
 
 procedure TApp.RegisterGUI;
@@ -104,12 +150,12 @@ begin
   mReg.InjectProp('Factory', IPersistFactory, '', PersistDIC);
   mReg.InjectProp('Binder', IRBTallyBinder, 'listbox', PersistDIC);
   mReg.InjectProp('Edit', IEditData, 'GroupForm');
-  mReg.InjectProp('SettingsBroker', ISettingsBroker);
+  mReg.InjectProp('HistorySettings', IHistorySettings, '', SettingsDIC);
   //
   mReg := DIC.Add(TGroupForm, DIC.Locate(TDIOwner), IEditData, 'GroupForm');
   mReg.InjectProp('Binder', IRBDataBinder, '', PersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
-  mReg.InjectProp('SettingsBroker', ISettingsBroker);
+  mReg.InjectProp('HistorySettings', IHistorySettings, '', SettingsDIC);
   mReg.InjectProp('Log', ILog);
   //
   mReg := DIC.Add(CreateMainFormInstance, IMainForm);
@@ -119,11 +165,7 @@ begin
   mReg.InjectProp('CryptedFile', DataFile);
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('MainForm', IListData, 'MainForm');
-  mReg.InjectProp('SettingsBroker', ISettingsBroker);
-  //
-  mReg := DIC.Add(TSettingsBroker, ISettingsBroker, '', ckSingle);
-  mReg.InjectProp('Store', IPersistStore, cSettingsStore, PersistDIC);
-  mReg.InjectProp('FileName', SettingsFile);
+  mReg.InjectProp('HistorySettings', IHistorySettings, '', SettingsDIC);
 end;
 
 procedure TApp.RegisterPersist;
@@ -144,8 +186,6 @@ begin
   // persist data
   RegisterDataClass(PersistDIC, TPassword);
   RegisterDataClass(PersistDIC, TGroup);
-  RegisterDataClass(PersistDIC, TAppSetting);
-  RegisterDataClass(PersistDIC, TAppSettingWindow);
   //
   mReg := PersistDIC.Add(TStoreCache);
   //
@@ -169,11 +209,6 @@ begin
   mReg.InjectProp('Factory', IPersistFactory);
   //
   mReg := PersistDIC.Add(TRBDataBinder, IRBDataBinder);
-  //
-  mReg := PersistDIC.Add(TPersistStore, IPersistStore, cSettingsStore);
-  mReg.InjectProp('Factory', IPersistFactory);
-  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Cache', TStoreCache);
 end;
 
 procedure TApp.RegisterCryptoPersist;
@@ -211,6 +246,7 @@ begin
   inherited;
   RegisterDICs;
   RegisterTools;
+  RegisterSettings;
   RegisterPersist;
   RegisterCryptoPersist;
   RegisterGUI;
