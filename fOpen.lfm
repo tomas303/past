@@ -12,13 +12,13 @@ object OpenForm: TOpenForm
     Left = 16
     Height = 15
     Top = 32
-    Width = 23
+    Width = 21
     Caption = 'Key'
     ParentColor = False
   end
   object edKey: TEdit
     Left = 64
-    Height = 23
+    Height = 21
     Top = 26
     Width = 384
     Anchors = [akTop, akLeft, akRight]
@@ -30,7 +30,7 @@ object OpenForm: TOpenForm
     Left = 16
     Height = 15
     Top = 6
-    Width = 21
+    Width = 19
     Caption = 'File'
     ParentColor = False
   end
@@ -47,11 +47,11 @@ object OpenForm: TOpenForm
   end
   object edFile: TComboBox
     Left = 64
-    Height = 23
+    Height = 21
     Top = 0
     Width = 384
     Anchors = [akTop, akLeft, akRight]
-    ItemHeight = 15
+    ItemHeight = 0
     TabOrder = 0
     Text = 'edFile'
   end
@@ -66,7 +66,7 @@ object OpenForm: TOpenForm
     TabOrder = 1
   end
   object dlgOpen: TOpenDialog
-    left = 352
-    top = 40
+    Left = 352
+    Top = 40
   end
 end

@@ -11,13 +11,13 @@ object GroupForm: TGroupForm
     Left = 8
     Height = 15
     Top = 8
-    Width = 47
+    Width = 46
     Caption = 'Caption'
     ParentColor = False
   end
   object Caption_bind: TEdit
     Left = 64
-    Height = 23
+    Height = 21
     Top = 8
     Width = 728
     Anchors = [akTop, akLeft, akRight]
