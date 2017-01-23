@@ -62,9 +62,9 @@ begin
   try
     Binder.BindArea(Self, AData);
     try
-      HistorySettings.Load(Self);
+      HistorySettings.Load(Self, '', False);
       Result := ShowModal = mrOK;
-      HistorySettings.Save(Self);
+      HistorySettings.Save(Self, '', False);
     finally
       Binder.Unbind;
     end;

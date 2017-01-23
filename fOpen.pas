@@ -71,13 +71,15 @@ end;
 
 procedure TOpenForm.StartUp;
 begin
-  HistorySettings.Load(Self);
+  HistorySettings.Load(Self, '', False);
+  HistorySettings.Load(edFile);
   Show;
 end;
 
 procedure TOpenForm.ShutDown;
 begin
-  HistorySettings.Save(Self);
+  HistorySettings.Save(Self, '', False);
+  HistorySettings.Save(edFile);
 end;
 
 procedure TOpenForm.ConnectCloseHandler(OnCloseHandler: TCloseEvent);
