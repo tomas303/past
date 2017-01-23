@@ -98,7 +98,6 @@ begin
   mReg := DIC.Add(TWindowLog, ILog, '', ckSingle);
   //
   mReg := DIC.Add(TCryptic, ICryptic, '', ckSingle);
-  mReg.InjectProp('Log', ILog);
 end;
 
 procedure TApp.RegisterSettings;
@@ -156,7 +155,6 @@ begin
   mReg.InjectProp('Binder', IRBDataBinder, '', PersistDIC);
   mReg.InjectProp('BehaveBinder', IRBBehavioralBinder);
   mReg.InjectProp('HistorySettings', IHistorySettings, '', SettingsDIC);
-  mReg.InjectProp('Log', ILog);
   //
   mReg := DIC.Add(CreateMainFormInstance, IMainForm);
   mReg.InjectProp('Factory', IPersistFactory, '', CryptoPersistDIC);

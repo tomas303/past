@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   Grids, Buttons, Menus, tal_iedit, trl_irttibroker, tvl_ibindings,
-  trl_icryptic, trl_ipersist, uPasswords, tal_ihistorysettings, LCLIntf, trl_ilog;
+  trl_icryptic, trl_ipersist, uPasswords, tal_ihistorysettings, LCLIntf;
 
 type
 
@@ -25,14 +25,12 @@ type
     fBinder: IRBDataBinder;
     fBehaveBinder: IRBBehavioralBinder;
     fHistorySettings: IHistorySettings;
-    fLog: ILog;
   protected
     function Edit(const AData: IRBData): Boolean;
   published
     property Binder: IRBDataBinder read fBinder write fBinder;
     property BehaveBinder: IRBBehavioralBinder read fBehaveBinder write fBehaveBinder;
     property HistorySettings: IHistorySettings read fHistorySettings write fHistorySettings;
-    property Log: ILog read fLog write fLog;
   end;
 
 implementation
@@ -51,7 +49,6 @@ begin
  mIndex := Passwords_bind.Row - 1;
  if (mIndex >= 0) and (mIndex < mPasswords.Count) then begin
    mUrl := mPasswords.AsPersistData[mIndex].ItemByName['Link'].AsString;
-   Log.DebugLn('opening url: %s', [mUrl]);
    OpenURL(mUrl);
  end;
 end;

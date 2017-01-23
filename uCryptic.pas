@@ -5,7 +5,7 @@ unit uCryptic;
 interface
 
 uses
-  Classes, SysUtils, trl_icryptic, DCPtwofish, DCPsha256, trl_ilog;
+  Classes, SysUtils, trl_icryptic, DCPtwofish, DCPsha256;
 
 
 type
@@ -18,7 +18,6 @@ type
   private
     fKey: string;
   protected
-    fLog: ILog;
     procedure CheckKey;
   protected
     function Decode(const AData: String): String;
@@ -28,8 +27,6 @@ type
     function GetKey: string;
     procedure SetKey(AValue: string);
     property Key: string read GetKey write SetKey;
-  published
-    property Log: ILog read fLog write fLog;
   end;
 
 implementation
@@ -86,7 +83,6 @@ begin
     AInStream.Position := 0;
     AOutStream.Size := 0;
     mCipher.DecryptStream(AInStream, AOutStream, AInStream.Size);
-    Log.DebugLn('decoded by %s', [Key]);
   finally
     mCipher.Free;
   end;
@@ -103,7 +99,6 @@ begin
     AInStream.Position := 0;
     AOutStream.Size := 0;
     mCipher.EncryptStream(AInStream, AOutStream, AInStream.Size);
-    Log.DebugLn('encoded by %s', [Key]);
   finally
     mCipher.Free;
   end;
@@ -117,7 +112,6 @@ end;
 procedure TCryptic.SetKey(AValue: string);
 begin
   if fKey <> AValue then begin
-    Log.DebugLn('key changed from %s to %s', [fKey, AValue]);
     fKey := AValue;
   end;
 end;
