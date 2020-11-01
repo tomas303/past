@@ -7,18 +7,18 @@ object OpenForm: TOpenForm
   Caption = 'PAST'
   ClientHeight = 58
   ClientWidth = 531
-  LCLVersion = '1.7'
+  LCLVersion = '2.1.0.0'
   object lblKey: TLabel
     Left = 16
-    Height = 15
+    Height = 17
     Top = 32
-    Width = 21
+    Width = 24
     Caption = 'Key'
     ParentColor = False
   end
   object edKey: TEdit
     Left = 64
-    Height = 21
+    Height = 24
     Top = 26
     Width = 384
     Anchors = [akTop, akLeft, akRight]
@@ -28,9 +28,9 @@ object OpenForm: TOpenForm
   end
   object lblFile: TLabel
     Left = 16
-    Height = 15
+    Height = 17
     Top = 6
-    Width = 19
+    Width = 23
     Caption = 'File'
     ParentColor = False
   end
@@ -47,7 +47,7 @@ object OpenForm: TOpenForm
   end
   object edFile: TComboBox
     Left = 64
-    Height = 21
+    Height = 26
     Top = 0
     Width = 384
     Anchors = [akTop, akLeft, akRight]

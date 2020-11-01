@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   EditBtn, Menus, trl_ipersist, trl_irttibroker, trl_icryptic, tal_iedit,
-  tal_ilauncher, tal_ihistorysettings;
+  trl_ilauncher, tal_ihistorysettings, tvl_imainform;
 
 type
 

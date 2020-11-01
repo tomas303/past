@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils,
   forms, fMain, fGroup,
-  tal_uapp, tal_uguilauncher, tal_ilauncher,
+  tal_uapp, tal_uguilauncher, trl_ilauncher,
   tal_uwindowlog,
   trl_ipersist,  trl_upersist, trl_upersiststore,
   trl_dicontainer,
@@ -18,7 +18,8 @@ uses
   tvl_ibindings, tal_iedit, tvl_ubehavebinder,
   uPasswords,
   uCryptic, trl_icryptic, fOpen,
-  tal_ihistorysettings;
+  tal_ihistorysettings,
+  tvl_imainform;
 
 type
 
@@ -40,7 +41,7 @@ type
     property CryptoPersistDIC: TDIContainer read GetCryptoPersistDIC;
     property SettingsDIC: TDIContainer read GetSettingsDIC;
   protected
-    function CreateMainFormInstance: TObject;
+    function CreateMainFormInstance(const AClass: TClass): TObject;
   protected
     procedure RegisterDICs;
     procedure RegisterTools;
@@ -79,7 +80,7 @@ begin
   Result := fSettingsDIC;
 end;
 
-function TApp.CreateMainFormInstance: TObject;
+function TApp.CreateMainFormInstance(const AClass: TClass): TObject;
 begin
   Application.CreateForm(TOpenForm, Result);
 end;
@@ -137,8 +138,6 @@ procedure TApp.RegisterGUI;
 var
   mReg: TDIReg;
 begin
-  mReg := DIC.Add(TDIOwner, '', ckSingle);
-  //
   mReg := DIC.Add(TGUILauncher, ILauncher);
   mReg.InjectProp('MainForm', IMainForm);
   //
