@@ -13,3 +13,5 @@ lib/
 *.bak
 *.dbg
 past
+backup/
+data/
