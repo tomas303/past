@@ -19,7 +19,10 @@ uses
   uPasswords,
   uCryptic, trl_icryptic, fOpen,
   tal_ihistorysettings,
-  tvl_imainform;
+  tvl_imainform,
+  flu_iflux, rea_idesigncomponent, rea_udesigncomponent, uappboot,
+  ipast,
+  ustoremanager;
 
 type
 
@@ -49,6 +52,7 @@ type
     procedure RegisterGUI;
     procedure RegisterPersist;
     procedure RegisterCryptoPersist;
+    procedure RegisterNew;
     procedure RegisterAppServices; override;
   end;
 
@@ -138,8 +142,8 @@ procedure TApp.RegisterGUI;
 var
   mReg: TDIReg;
 begin
-  mReg := DIC.Add(TGUILauncher, ILauncher);
-  mReg.InjectProp('MainForm', IMainForm);
+  //mReg := DIC.Add(TGUILauncher, ILauncher);
+  //mReg.InjectProp('MainForm', IMainForm);
   //
   mReg := DIC.Add(TRBBehavioralBinder, IRBBehavioralBinder);
   //
@@ -238,6 +242,28 @@ begin
   mReg := CryptoPersistDIC.Add(TRBDataBinder, IRBDataBinder);
 end;
 
+procedure TApp.RegisterNew;
+var
+  mReg: TDIReg;
+begin
+  //RegApps.RegisterWindowLog;
+  RegReact.RegisterCommon;
+  RegFlux.RegisterCommon(IFluxStore);
+  RegRedux.RegisterCommon;
+  RegApps.RegisterReactApp;
+  //
+  RegReact.RegisterDesignComponent(TDesignComponentApp, IDesignComponentApp);
+  //
+  mReg := CryptoPersistDIC.Add(TStoreManager, IStoreManager, '', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory, '', CryptoPersistDIC);
+  mReg.InjectProp('EncrytedStore', IPersistStore, '', CryptoPersistDIC);
+  mReg.InjectProp('DecrytedStore', IPersistStore, '', PersistDIC);
+  mReg.InjectProp('Cryptic', ICryptic, '', DIC);
+  //
+  mReg := RegRedux.RegisterFunc(TOpenDataFunc);
+  mReg.InjectProp('StoreManager', IStoreManager, '', CryptoPersistDIC);
+end;
+
 procedure TApp.RegisterAppServices;
 begin
   inherited;
@@ -247,6 +273,7 @@ begin
   RegisterPersist;
   RegisterCryptoPersist;
   RegisterGUI;
+  RegisterNew;
 end;
 
 end.
