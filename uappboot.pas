@@ -28,9 +28,6 @@ type
   { TOpenDataFunc }
 
   TOpenDataFunc = class(TDesignComponentFunc)
-  private
-    fRenderNotifier: IFluxNotifier;
-    //IStoreManager
   protected
     procedure DoExecute(const AAction: IFluxAction); override;
   public
@@ -38,15 +35,19 @@ type
       const ARenderNotifier: IFluxNotifier);
   protected
     fStoreManager: IStoreManager;
+    fRenderNotifier: IFluxNotifier;
   published
     property StoreManager: IStoreManager read fStoreManager write fStoreManager;
+    property RenderNotifier: IFluxNotifier read fRenderNotifier write fRenderNotifier;
   end;
 
   { TDesignComponentApp }
 
   TDesignComponentApp = class(TDesignComponent, IDesignComponentApp)
-  private const
+  public const
     cOpenDataNotifier = 'OpenDataNotifier';
+    cDataFile = 'file';
+    cDataKey = 'key';
   private
     function NewOpenDataFunc: IFluxFunc;
   private
@@ -56,6 +57,7 @@ type
     function ComposeMain: IMetaElement;
   protected
     procedure DoInitState(const AState: IGenericAccess); override;
+    procedure DoStartingValues; override;
     function DoCompose(const AProps: IProps; const AChildren: TMetaElementArray): IMetaElement; override;
   end;
 
@@ -90,7 +92,11 @@ implementation
 procedure TOpenDataFunc.DoExecute(const AAction: IFluxAction
   );
 begin
-  fRenderNotifier.Notify;
+  StoreManager.Open(
+    AAction.Props.AsStr(TDesignComponentApp.cDataFile),
+    AAction.Props.AsStr(TDesignComponentApp.cDataKey)
+  );
+  RenderNotifier.Notify;
 end;
 
 constructor TOpenDataFunc.Create(AID: integer;
@@ -146,6 +152,7 @@ begin
     NewProps
     .SetInt('ID', FuncSequence.Next)
     .SetIntf('State', State)
+    .SetIntf('RenderNotifier', NewNotifier(cFuncRender))
   ));
 end;
 
@@ -179,13 +186,25 @@ begin
         ElementFactory.CreateElement(IStripBit,
         NewProps.SetInt(cProps.Layout, cLayout.Vertical).SetInt(cProps.Place, cPlace.Elastic),
         [
-          ElementFactory.CreateElement(IDesignComponentEdit, NewProps.SetInt(cProps.Place, cPlace.FixFront).SetInt(cProps.MMHeight, 20)),
-          ElementFactory.CreateElement(IDesignComponentEdit, NewProps.SetInt(cProps.Place, cPlace.FixFront).SetInt(cProps.MMHeight, 20))
+          ElementFactory.CreateElement(IDesignComponentEdit,
+            NewProps
+            .SetStr(cProps.ID, cDataFile)
+            .SetStr(cProps.DataPath, cDataFile)
+            .SetInt(cProps.Place, cPlace.FixFront)
+            .SetInt(cProps.MMHeight, 20)
+            .SetIntf(cProps.AskNotifier, OpenDataNotifier)),
+          ElementFactory.CreateElement(IDesignComponentEdit,
+            NewProps
+            .SetStr(cProps.ID, cDataKey)
+            .SetStr(cProps.DataPath, cDataKey)
+            .SetInt(cProps.Place, cPlace.FixFront)
+            .SetInt(cProps.MMHeight, 20)
+            .SetIntf(cProps.AskNotifier, OpenDataNotifier))
         ]),
         ElementFactory.CreateElement(IStripBit,
         NewProps.SetInt(cProps.Layout, cLayout.Vertical).SetInt(cProps.Place, cPlace.FixBack).SetInt(cProps.MMWidth, 50),
         [
-          ElementFactory.CreateElement(IDesignComponentButton, NewProps.SetStr(cProps.Text, 'Open').SetInt(cProps.Place, cPlace.FixFront).SetInt(cProps.MMHeight, 40))
+          ComposeOpenButton
         ])
       ]
     );
@@ -200,6 +219,12 @@ procedure TDesignComponentApp.DoInitState(const AState: IGenericAccess);
 begin
   inherited DoInitState(AState);
   AddFuncNotifier(AState, NewOpenDataFunc, cOpenDataNotifier);
+end;
+
+procedure TDesignComponentApp.DoStartingValues;
+begin
+  inherited DoStartingValues;
+  DataPath := 'app';
 end;
 
 function TDesignComponentApp.DoCompose(const AProps: IProps; const AChildren: TMetaElementArray): IMetaElement;
