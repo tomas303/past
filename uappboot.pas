@@ -12,27 +12,11 @@ uses
 
 type
 
-  { TCloseQueryFunc }
-
-  TCloseQueryFunc = class(TInterfacedObject, IFluxFunc)
-  private
-    fID: integer;
-  protected
-    procedure Execute(const AAction: IFluxAction);
-    function RunAsync: Boolean;
-    function GetID: integer;
-  public
-    constructor Create(AID: integer);
-  end;
-
   { TOpenDataFunc }
 
   TOpenDataFunc = class(TDesignComponentFunc)
   protected
     procedure DoExecute(const AAction: IFluxAction); override;
-  public
-    constructor Create(AID: integer; const AState: IGenericAccess;
-      const ARenderNotifier: IFluxNotifier);
   protected
     fStoreManager: IStoreManager;
     fRenderNotifier: IFluxNotifier;
@@ -45,12 +29,15 @@ type
 
   TDesignComponentApp = class(TDesignComponent, IDesignComponentApp)
   public const
+    cCloseQueryNotifier = 'CloseQueryNotifier';
     cOpenDataNotifier = 'OpenDataNotifier';
     cDataFile = 'file';
     cDataKey = 'key';
   private
     function NewOpenDataFunc: IFluxFunc;
+    function NewCloseQueryFunc: IFluxFunc;
   private
+    function CloseQueryNotifier: IFluxNotifier;
     function OpenDataNotifier: IFluxNotifier;
     function ComposeOpenButton: IMetaElement;
     function ComposeOpenData: IMetaElement;
@@ -99,13 +86,6 @@ begin
   RenderNotifier.Notify;
 end;
 
-constructor TOpenDataFunc.Create(AID: integer;
-  const AState: IGenericAccess; const ARenderNotifier: IFluxNotifier);
-begin
-  inherited Create(AID, AState);
-  fRenderNotifier := ARenderNotifier;
-end;
-
 { TC }
 
 class function TC.Path: string;
@@ -121,29 +101,6 @@ begin
   Result := mInfo^.Name;
 end;
 
-{ TCloseQueryFunc }
-
-procedure TCloseQueryFunc.Execute(const AAction: IFluxAction);
-begin
-  Application.Terminate;
-end;
-
-function TCloseQueryFunc.RunAsync: Boolean;
-begin
-  Result := False;
-end;
-
-function TCloseQueryFunc.GetID: integer;
-begin
-  Result := fID;
-end;
-
-constructor TCloseQueryFunc.Create(AID: integer);
-begin
-  inherited Create;
-  fID := AID;
-end;
-
 { TDesignComponentApp }
 
 function TDesignComponentApp.NewOpenDataFunc: IFluxFunc;
@@ -154,6 +111,19 @@ begin
     .SetIntf('State', State)
     .SetIntf('RenderNotifier', NewNotifier(cFuncRender))
   ));
+end;
+
+function TDesignComponentApp.NewCloseQueryFunc: IFluxFunc;
+begin
+  Result := IFluxFunc(Factory.Locate(IFluxFunc, 'TCloseQueryFunc',
+    NewProps
+    .SetInt('ID', FuncSequence.Next)
+  ));
+end;
+
+function TDesignComponentApp.CloseQueryNotifier: IFluxNotifier;
+begin
+  Result := State.AsIntf(cCloseQueryNotifier) as IFluxNotifier;
 end;
 
 function TDesignComponentApp.OpenDataNotifier: IFluxNotifier;
@@ -218,6 +188,7 @@ end;
 procedure TDesignComponentApp.DoInitState(const AState: IGenericAccess);
 begin
   inherited DoInitState(AState);
+  AddFuncNotifier(AState, NewCloseQueryFunc, cCloseQueryNotifier);
   AddFuncNotifier(AState, NewOpenDataFunc, cOpenDataNotifier);
 end;
 
@@ -228,17 +199,13 @@ begin
 end;
 
 function TDesignComponentApp.DoCompose(const AProps: IProps; const AChildren: TMetaElementArray): IMetaElement;
-var
-  mCQ: IFluxNotifier;
 begin
-  mCQ := NewNotifier(-303);
-  FluxFuncReg.RegisterFunc(TCloseQueryFunc.Create(-303));
   Result := ElementFactory.CreateElement(
       IDesignComponentForm,
         NewProps
           .SetStr('DataPath', 'main')
           .SetStr(cProps.Title, 'PAST')
-          .SetIntf(cProps.CloseQueryNotifier, mCQ),
+          .SetIntf(cProps.CloseQueryNotifier, CloseQueryNotifier),
         [ComposeOpenData]);
 end;
 

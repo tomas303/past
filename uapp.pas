@@ -260,7 +260,7 @@ begin
   mReg.InjectProp('DecrytedStore', IPersistStore, '', PersistDIC);
   mReg.InjectProp('Cryptic', ICryptic, '', DIC);
   //
-  mReg := RegRedux.RegisterFunc(TOpenDataFunc);
+  mReg := RegFlux.RegisterFunc(TOpenDataFunc);
   mReg.InjectProp('StoreManager', IStoreManager, '', CryptoPersistDIC);
 end;
 
