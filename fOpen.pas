@@ -43,7 +43,7 @@ type
     procedure OpenDecryptedStore(const AKey: string);
     procedure CloseDecryptedStore;
     procedure EditData(const AKey: string);
-   published
+  published
     property Factory: IPersistFactory read fFactory write fFactory;
     property EncrytedStore: IPersistStore read fEncryptedStore write fEncryptedStore;
     property DecrytedStore: IPersistStore read fDecrytedStore write fDecrytedStore;

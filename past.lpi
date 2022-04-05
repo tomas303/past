@@ -106,24 +106,27 @@
         </Mode0>
       </Modes>
     </RunParams>
-    <RequiredPackages Count="5">
+    <RequiredPackages Count="6">
       <Item1>
-        <PackageName Value="tal"/>
+        <PackageName Value="rea"/>
       </Item1>
       <Item2>
-        <PackageName Value="dcpcrypt"/>
+        <PackageName Value="tal"/>
       </Item2>
       <Item3>
-        <PackageName Value="tvl"/>
+        <PackageName Value="dcpcrypt"/>
       </Item3>
       <Item4>
-        <PackageName Value="trl"/>
+        <PackageName Value="tvl"/>
       </Item4>
       <Item5>
-        <PackageName Value="LCL"/>
+        <PackageName Value="trl"/>
       </Item5>
+      <Item6>
+        <PackageName Value="LCL"/>
+      </Item6>
     </RequiredPackages>
-    <Units Count="10">
+    <Units Count="13">
       <Unit0>
         <Filename Value="past.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -173,6 +176,18 @@
         <Filename Value="ipast.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit9>
+      <Unit10>
+        <Filename Value="uappgui.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="uappdata.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="uappfunc.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -209,7 +224,7 @@
     </Linking>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="3">
+    <Exceptions Count="4">
       <Item1>
         <Name Value="EAbort"/>
       </Item1>
@@ -219,6 +234,9 @@
       <Item3>
         <Name Value="EFOpenError"/>
       </Item3>
+      <Item4>
+        <Name Value="EExecutorStop"/>
+      </Item4>
     </Exceptions>
   </Debugging>
 </CONFIG>

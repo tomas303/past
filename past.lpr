@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  uApp, uappboot, ustoremanager, ipast;
+  uApp, ustoremanager, ipast, uappgui, uappdata, uappfunc;
 
 {$R *.res}
 

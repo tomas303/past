@@ -7,14 +7,13 @@ object OpenForm: TOpenForm
   Caption = 'PAST'
   ClientHeight = 58
   ClientWidth = 531
-  LCLVersion = '2.1.0.0'
+  LCLVersion = '2.3.0.0'
   object lblKey: TLabel
     Left = 16
     Height = 17
     Top = 32
     Width = 24
     Caption = 'Key'
-    ParentColor = False
   end
   object edKey: TEdit
     Left = 64
@@ -32,7 +31,6 @@ object OpenForm: TOpenForm
     Top = 6
     Width = 23
     Caption = 'File'
-    ParentColor = False
   end
   object btnOpen: TButton
     Left = 448
