@@ -25,7 +25,7 @@ uses
   ustoremanager,
   rea_idataconnector, trl_isequence,
   trl_udifactory,
-  uappfunc;
+  uappfunc, uappdata;
 
 type
 
@@ -317,6 +317,7 @@ begin
   RegisterPersist;
 
   mReg := RegReact.RegisterDesignComponentFactory(TDCOpenStorageFactory, IDCOpenStorageFactory);
+  mReg := RegReact.RegisterDesignComponentFactory(TDCPasswordListFactory, IDCPasswordListFactory);
 
   mReg := RegReact.RegisterDesignComponent(TGUI, IDesignComponentApp);
   mReg.InjectProp('DataConnector', IDataConnector);
@@ -325,6 +326,9 @@ begin
 
   RegisterStorageFunc(TOpenStorageFunc);
   RegisterStorageFunc(TCloseStorageFunc);
+
+  mReg := DIC.Add(TMyGridDataProvider, IGridDataProvider);
+  mReg.InjectProp('Factory2', TDIFactory2);
 end;
 
 end.

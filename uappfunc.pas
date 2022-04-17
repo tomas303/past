@@ -40,6 +40,10 @@ type
     procedure OpenDecryptedStore(const AKey: string);
   protected
     procedure DoExecute(const AAction: IFluxAction); override;
+  protected
+    fRenderNotifier: IFluxNotifier;
+  published
+    property RenderNotifier: IFluxNotifier read fRenderNotifier write fRenderNotifier;
   end;
 
   { TCloseStorageFunc }
@@ -101,6 +105,8 @@ end;
 
 procedure TCloseStorageFunc.DoExecute(const AAction: IFluxAction);
 begin
+  fData.Store := nil;
+  fData.Opened := False;
   CloseDecryptedStore(Data.PasswordData.Text);
   CloseEncryptedStore;
 end;
@@ -143,6 +149,9 @@ procedure TOpenStorageFunc.DoExecute(const AAction: IFluxAction);
 begin
   OpenEncryptedStore(Data.FileNameData.Text);
   OpenDecryptedStore(Data.PasswordData.Text);
+  fData.Opened := True;
+  fData.Store := DecryptedStore;
+  fRenderNotifier.Notify;
 end;
 
 end.
