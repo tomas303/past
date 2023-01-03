@@ -72,22 +72,24 @@ type
   end;
 
 
-  { IGUIOpenStore }
+  { IGUIStore }
 
-  IGUIOpenStore = interface(IDesignComponent)
+  IGUIStore = interface(IDesignComponent)
   ['{7B5E661F-B0BD-4A09-B665-D126B19F4088}']
   end;
 
-  { TGUIOpenStore }
+  { TGUIStore }
 
-  TGUIOpenStore = class(TDesignComponent, IGUIOpenStore)
+  TGUIStore = class(TDesignComponent, IGUIStore)
   private
     fFileEdit: IDesignComponentEdit;
     fPasswordEdit: IDesignComponentEdit;
+    fOpen: IDesignComponentButton;
     function OpenEncryptedStore(const AFile: String): TStream;
     procedure CloseEncryptedStore(const AData: TStream);
     procedure OpenDecryptedStore(const ACryptedData: TStream; const APassword: string);
     function CloseDecryptedStore: TStream;
+    procedure PSClickOpenObserver;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -95,19 +97,21 @@ type
     fCryptic: ICryptic;
     fEncryptedStore: IPersistStore;
     fDecryptedStore: IPersistStore;
+    fPSGUIChannel: IPSGUIChannel;
   published
     property Cryptic: ICryptic read fCryptic write fCryptic;
     property EncryptedStore: IPersistStore read fEncryptedStore write fEncryptedStore;
     property DecryptedStore: IPersistStore read fDecryptedStore write fDecryptedStore;
+    property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
 
 
   TGUI = class(TDesignComponent, IDesignComponentApp)
   private
     fForm: IDesignComponentForm;
-    fOpenStore: IGUIOpenStore;
+    fOpenStore: IGUIStore;
     function NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
-    function NewStore: IGUIOpenStore;
+    function NewStore: IGUIStore;
     procedure CreateComponents;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
@@ -148,15 +152,15 @@ begin
   end;
 end;
 
-function TGUI.NewStore: IGUIOpenStore;
+function TGUI.NewStore: IGUIStore;
 begin
-  Result := Factory2.Locate<IGUIOpenStore>;
+  Result := Factory2.Locate<IGUIStore>(NewProps.SetIntf('PSGUIChannel', PSGUIChannel));
 end;
 
 procedure TGUI.CreateComponents;
 begin
   fOpenStore := NewStore;
-  fForm := NewForm([fOpenStore]);
+  fForm := NewForm([]);
 end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
@@ -188,11 +192,16 @@ end;
 function TGUI.DoCompose: IMetaElement;
 begin
   Result := fForm.Compose;
+  if Store.IsOpened then begin
+    //Result := fForm.Compose
+  end else begin
+    (Result as INode).AddChild(fOpenStore.Compose as INode);
+  end;
 end;
 
-{ TGUIOpenStore }
+{ TGUIStore }
 
-function TGUIOpenStore.OpenEncryptedStore(const AFile: String): TStream;
+function TGUIStore.OpenEncryptedStore(const AFile: String): TStream;
 var
   mList: IPersistRefList;
 begin
@@ -205,7 +214,7 @@ begin
   end;
 end;
 
-procedure TGUIOpenStore.CloseEncryptedStore(const AData: TStream);
+procedure TGUIStore.CloseEncryptedStore(const AData: TStream);
 var
   mList: IPersistRefList;
   mData: IRBData;
@@ -226,7 +235,7 @@ begin
   EncryptedStore.Close;
 end;
 
-procedure TGUIOpenStore.OpenDecryptedStore(const ACryptedData: TStream; const APassword: string);
+procedure TGUIStore.OpenDecryptedStore(const ACryptedData: TStream; const APassword: string);
 var
   mData: TMemoryStream;
 begin
@@ -253,7 +262,7 @@ begin
   end;
 end;
 
-function TGUIOpenStore.CloseDecryptedStore: TStream;
+function TGUIStore.CloseDecryptedStore: TStream;
 var
   mData: TMemoryStream;
 begin
@@ -267,7 +276,20 @@ begin
   end;
 end;
 
-procedure TGUIOpenStore.InitValues;
+procedure TGUIStore.PSClickOpenObserver;
+var
+  mEncrypted: TStream;
+begin
+  mEncrypted := OpenEncryptedStore(fFileEdit.Text);
+  try
+    OpenDecryptedStore(mEncrypted, fPasswordEdit.Text);
+    PSGUIChannel.Debounce(TGUIData.Create(gaRender));
+  finally
+    mEncrypted.Free;
+  end;
+end;
+
+procedure TGUIStore.InitValues;
 begin
   inherited InitValues;
   fFileEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
@@ -276,15 +298,21 @@ begin
   fPasswordEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
     .SetStr(cProps.ID, 'guiopenstore_password')
     );
+  fOpen := Factory2.Locate<IDesignComponentButton>(NewComposeProps
+    .SetStr(cProps.ID, 'guiopenstore_open')
+    .SetStr(cProps.Text, 'Open')
+    );
+  fOpen.PSClickChannel.Subscribe(PSClickOpenObserver);
 end;
 
-function TGUIOpenStore.DoCompose: IMetaElement;
+function TGUIStore.DoCompose: IMetaElement;
 var
   mBox: IDesignComponent;
 begin
   mBox := Factory2.Locate<IDesignComponentVBox>;
-  (mBox as INode).AddChild(Morph.StickLabel(fFileEdit, 'File:', cEdge.Left, 50) as INode);
-  (mBox as INode).AddChild(Morph.StickLabel(fPasswordEdit, 'Password:', cEdge.Left, 50) as INode);
+  (mBox as INode).AddChild(Morph.WrapUp(fFileEdit, 30, 'File:', 100) as INode);
+  (mBox as INode).AddChild(Morph.WrapUp(fPasswordEdit, 30, 'Password:', 100) as INode);
+  (mBox as INode).AddChild(Morph.WrapUp(fOpen, 30) as INode);
   Result := mBox.Compose;
 end;
 
@@ -321,7 +349,12 @@ begin
   mReg := RegReact.RegisterDesignComponent(TGUI, IDesignComponentApp);
   mReg.InjectProp('Store', IPersistStore);
   mReg.InjectProp('PersistFactory', IPersistFactory);
-  mReg := RegReact.RegisterDesignComponent(TGUIOpenStore, IGUIOpenStore);
+  mReg := RegReact.RegisterDesignComponent(TGUIStore, IGUIStore);
+
+  mReg.InjectProp('Cryptic', ICryptic);
+  mReg.InjectProp('EncryptedStore', IPersistStore, 'encrypted');
+  mReg.InjectProp('DecryptedStore', IPersistStore);
+
 end;
 
 procedure TApp.RegisterPersist;
