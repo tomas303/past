@@ -109,6 +109,45 @@ type
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
 
+  { IGUIPasswords }
+
+  IGUIPasswords = interface(IDesignComponent)
+  ['{4C326C46-CFB0-469D-BCAF-7819BA5BF2C2}']
+    function GetLoginEdit: IDesignComponentEdit;
+    function GetPasswordEdit: IDesignComponentEdit;
+    function GetLinkEdit: IDesignComponentEdit;
+    function GetRemarkEdit: IDesignComponentEdit;
+    function GetGrid: IDesignComponentGrid;
+    property LoginEdit: IDesignComponentEdit read GetLoginEdit;
+    property PasswordEdit: IDesignComponentEdit read GetPasswordEdit;
+    property LinkEdit: IDesignComponentEdit read GetLinkEdit;
+    property RemarkEdit: IDesignComponentEdit read GetRemarkEdit;
+    property Grid: IDesignComponentGrid read GetGrid;
+  end;
+
+  { TGUIPasswords }
+
+  TGUIPasswords = class(TDesignComponent, IGUIPasswords)
+  private
+    fLoginEdit: IDesignComponentEdit;
+    fPasswordEdit: IDesignComponentEdit;
+    fLinkEdit: IDesignComponentEdit;
+    fRemarkEdit: IDesignComponentEdit;
+    fGrid: IDesignComponentGrid;
+  protected
+    procedure InitValues; override;
+    function DoCompose: IMetaElement; override;
+    function GetLoginEdit: IDesignComponentEdit;
+    function GetPasswordEdit: IDesignComponentEdit;
+    function GetLinkEdit: IDesignComponentEdit;
+    function GetRemarkEdit: IDesignComponentEdit;
+    function GetGrid: IDesignComponentGrid;
+  protected
+    fPSGUIChannel: IPSGUIChannel;
+  published
+    property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
+  end;
+
 
   TGUI = class(TDesignComponent, IDesignComponentApp)
   private
@@ -118,8 +157,11 @@ type
   private
     fForm: IDesignComponentForm;
     fOpenStore: IGUIStore;
+    fPasswords: IGUIPasswords;
+    fIsOpened: Boolean;
     function NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
     function NewStore: IGUIStore;
+    function NewPasswords: IGUIPasswords;
     procedure CreateComponents;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
@@ -141,6 +183,76 @@ type
   end;
 
 implementation
+
+{ TGUIPasswords }
+
+procedure TGUIPasswords.InitValues;
+begin
+  inherited InitValues;
+  fLoginEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
+    .SetStr(cProps.ID, 'passwords_login')
+    );
+  fPasswordEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
+    .SetStr(cProps.ID, 'passwords_password')
+    );
+  fLinkEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
+    .SetStr(cProps.ID, 'passwords_link')
+    );
+  fRemarkEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
+    .SetStr(cProps.ID, 'passwords_remark')
+    );
+  fGrid := Factory2.Locate<IDesignComponentGrid>(NewComposeProps
+    .SetStr(cProps.ID, 'passwords_grid')
+    .SetIntf('PSGUIChannel', PSGUIChannel)
+    .SetInt(cGrid.RowCount, 30)
+    .SetInt(cGrid.ColCount, 2)
+    .SetInt(cGrid.RowMMHeight, 25)
+    .SetInt(cGrid.ColMMWidth, 25)
+    .SetInt(cGrid.LaticeColColor, clBlack)
+    .SetInt(cGrid.LaticeRowColor, clBlack)
+    .SetInt(cGrid.LaticeColSize, 2)
+    .SetInt(cGrid.LaticeRowSize, 2)
+    );
+end;
+
+function TGUIPasswords.DoCompose: IMetaElement;
+var
+  mBoxEdit: IDesignComponent;
+  mBox: IDesignComponent;
+begin
+  mBoxEdit := Factory2.Locate<IDesignComponentVBox>;
+  (mBoxEdit as INode).AddChild(Morph.WrapUp(fLinkEdit, 30, 'Link:', 100) as INode);
+  (mBoxEdit as INode).AddChild(Morph.WrapUpElastic(fRemarkEdit, 'Remark:', 100) as INode);
+  mBox := Factory2.Locate<IDesignComponentHBox>;
+  (mBox as INode).AddChild(fGrid as INode);
+  (mBox as INode).AddChild(mBoxEdit as INode);
+  Result := mBox.Compose;
+end;
+
+function TGUIPasswords.GetLoginEdit: IDesignComponentEdit;
+begin
+  Result := fLoginEdit;
+end;
+
+function TGUIPasswords.GetPasswordEdit: IDesignComponentEdit;
+begin
+  Result := fPasswordEdit;
+end;
+
+function TGUIPasswords.GetLinkEdit: IDesignComponentEdit;
+begin
+  Result := fLinkEdit;
+end;
+
+function TGUIPasswords.GetRemarkEdit: IDesignComponentEdit;
+begin
+  Result := fRemarkEdit;
+end;
+
+function TGUIPasswords.GetGrid: IDesignComponentGrid;
+begin
+  Result := fGrid;
+end;
 
 { TGUI }
 
@@ -178,6 +290,7 @@ begin
     .SetStr(cProps.ID, 'mainform')
     .SetIntf('PSGUIChannel', fPSGUIChannel)
     .SetStr(cProps.Caption, 'past ... password storage')
+    .SetInt(cProps.Layout, cLayout.Overlay)
     );
   Result.PSSizeChannel.Subscribe(PSSizeObserver);
   Result.PSPositionChannel.Subscribe(PSPositionObserver);
@@ -192,10 +305,16 @@ begin
   Result := Factory2.Locate<IGUIStore>(NewProps.SetIntf('PSGUIChannel', PSGUIChannel));
 end;
 
+function TGUI.NewPasswords: IGUIPasswords;
+begin
+  Result := Factory2.Locate<IGUIPasswords>(NewProps.SetIntf('PSGUIChannel', PSGUIChannel));
+end;
+
 procedure TGUI.CreateComponents;
 begin
   fOpenStore := NewStore;
-  fForm := NewForm([]);
+  fPasswords := NewPasswords;
+  fForm := NewForm([fPasswords, fOpenStore]);
 end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
@@ -230,13 +349,14 @@ end;
 
 function TGUI.DoCompose: IMetaElement;
 begin
-  Result := fForm.Compose;
   if Store.IsOpened then begin
-    fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
-    //Result := fForm.Compose
-  end else begin
-    (Result as INode).AddChild(fOpenStore.Compose as INode);
+    if not fIsOpened then begin
+      fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
+      (fForm as INode).ExchangeChild(fOpenStore as INode, fPasswords as INode);
+      fIsOpened := True;
+    end;
   end;
+  Result := fForm.Compose;
 end;
 
 { TGUIStore }
@@ -400,6 +520,8 @@ begin
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('EncryptedStore', IPersistStore, 'encrypted');
   mReg.InjectProp('DecryptedStore', IPersistStore);
+
+  mReg := RegReact.RegisterDesignComponent(TGUIPasswords, IGUIPasswords);
 
 end;
 
