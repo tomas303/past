@@ -76,6 +76,8 @@ type
 
   IGUIStore = interface(IDesignComponent)
   ['{7B5E661F-B0BD-4A09-B665-D126B19F4088}']
+    function GetFileEdit: IDesignComponentEdit;
+    property FileEdit: IDesignComponentEdit read GetFileEdit;
   end;
 
   { TGUIStore }
@@ -93,6 +95,8 @@ type
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
+  private
+    function GetFileEdit: IDesignComponentEdit;
   protected
     fCryptic: ICryptic;
     fEncryptedStore: IPersistStore;
@@ -108,6 +112,10 @@ type
 
   TGUI = class(TDesignComponent, IDesignComponentApp)
   private
+    fAppSettings: IRBData;
+    function GetAppSettings: IRBData;
+    procedure PublishAppSettings;
+  private
     fForm: IDesignComponentForm;
     fOpenStore: IGUIStore;
     function NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
@@ -122,10 +130,12 @@ type
     function DoCompose: IMetaElement; override;
   protected
     fStore: IPersistStore;
+    fSettingsStore: IPersistStore;
     fPersistFactory: IPersistFactory;
     fPSGUIChannel: IPSGUIChannel;
   published
     property Store: IPersistStore read fStore write fStore;
+    property SettingsStore: IPersistStore read fSettingsStore write fSettingsStore;
     property PersistFactory: IPersistFactory read fPersistFactory write fPersistFactory;
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
@@ -134,12 +144,37 @@ implementation
 
 { TGUI }
 
+function TGUI.GetAppSettings: IRBData;
+var
+  mList: IPersistRefList;
+begin
+  mList := (SettingsStore as IPersistQuery).SelectClass(TAppSettings.ClassName);
+  if mList.Count = 0 then
+  begin
+    Result := PersistFactory.Create(IRBData, TAppSettings.ClassName) as IRBData;
+    Result.ItemByName['Width'].AsInteger := 600;
+    Result.ItemByName['Height'].AsInteger := 200;
+    Result.ItemByName['Left'].AsInteger := 300;
+    Result.ItemByName['Top'].AsInteger := 400;
+  end
+  else
+  begin
+    Result := mList.Data[0];
+  end;
+end;
+
+procedure TGUI.PublishAppSettings;
+begin
+  fForm.PSSizeChannel.Publish(TSizeData.Create(Self, fAppSettings.ItemByName['Width'].AsInteger, fAppSettings.ItemByName['Height'].AsInteger));
+  fForm.PSPositionChannel.Publish(TPositionData.Create(Self, fAppSettings.ItemByName['Left'].AsInteger, fAppSettings.ItemByName['Top'].AsInteger));
+  fOpenStore.FileEdit.PSTextChannel.Publish(fAppSettings.ItemByName['LastOpenedFile'].AsString);
+end;
+
 function TGUI.NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
 var
   mDC: IDesignComponent;
 begin
   Result := Factory2.Locate<IDesignComponentForm>(NewProps
-
     .SetStr(cProps.ID, 'mainform')
     .SetIntf('PSGUIChannel', fPSGUIChannel)
     .SetStr(cProps.Caption, 'past ... password storage')
@@ -165,34 +200,39 @@ end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
 begin
+  fAppSettings.ItemByName['Width'].AsInteger := AValue.Width;
+  fAppSettings.ItemByName['Height'].AsInteger := AValue.Height;
   PSGUIChannel.Debounce(TGUIData.Create(gaRender));
 end;
 
 procedure TGUI.PSPositionObserver(const AValue: TPositionData);
 begin
-
+  fAppSettings.ItemByName['Left'].AsInteger := AValue.Left;
+  fAppSettings.ItemByName['Top'].AsInteger := AValue.Top;
 end;
 
 procedure TGUI.PSCloseProgramObserver;
 begin
-  //Store.Save(fAppSettings);
-  //Store.Close;
+  SettingsStore.Save(fAppSettings);
+  SettingsStore.Close;
   raise ELaunchStop.Create('');
 end;
 
 procedure TGUI.InitValues;
 begin
   inherited InitValues;
+  SettingsStore.Open('~/settings.xml');
+  fAppSettings := GetAppSettings;
   CreateComponents;
   //CreateDataConnectors;
-  //fAppSettings := GetAppSettings;
-  //PublishAppSettings;
+  PublishAppSettings;
 end;
 
 function TGUI.DoCompose: IMetaElement;
 begin
   Result := fForm.Compose;
   if Store.IsOpened then begin
+    fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
     //Result := fForm.Compose
   end else begin
     (Result as INode).AddChild(fOpenStore.Compose as INode);
@@ -316,6 +356,11 @@ begin
   Result := mBox.Compose;
 end;
 
+function TGUIStore.GetFileEdit: IDesignComponentEdit;
+begin
+  Result := fFileEdit;
+end;
+
 { TCrypto }
 
 procedure TCrypto.AfterConstruction;
@@ -348,9 +393,10 @@ begin
   RegApps.RegisterWindowLog;
   mReg := RegReact.RegisterDesignComponent(TGUI, IDesignComponentApp);
   mReg.InjectProp('Store', IPersistStore);
+  mReg.InjectProp('SettingsStore', IPersistStore, 'settings');
   mReg.InjectProp('PersistFactory', IPersistFactory);
-  mReg := RegReact.RegisterDesignComponent(TGUIStore, IGUIStore);
 
+  mReg := RegReact.RegisterDesignComponent(TGUIStore, IGUIStore);
   mReg.InjectProp('Cryptic', ICryptic);
   mReg.InjectProp('EncryptedStore', IPersistStore, 'encrypted');
   mReg.InjectProp('DecryptedStore', IPersistStore);
@@ -384,6 +430,11 @@ begin
   mReg.InjectProp('Store', IPersistStore);
   //
   mReg := DIC.Add(TStoreCache);
+  //
+  mReg := DIC.Add(TPersistStore, IPersistStore, 'settings', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
+  mReg.InjectProp('Cache', TStoreCache);
   //
   mReg := DIC.Add(TPersistStore, IPersistStore, 'encrypted', ckSingle);
   mReg.InjectProp('Factory', IPersistFactory);
