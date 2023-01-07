@@ -13,7 +13,8 @@ uses
   trl_upersiststore, trl_ipersist,
   trl_upersistxml,
   rea_idata, sysutils,
-  trl_icryptic, uCryptic;
+  trl_icryptic, uCryptic,
+  tvl_itimer;
 
 type
 
@@ -160,6 +161,7 @@ type
     fPasswords: IGUIPasswords;
     fIsOpened: Boolean;
     function NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
+    function NewLogButton: IDesignComponentButton;
     function NewStore: IGUIStore;
     function NewPasswords: IGUIPasswords;
     procedure CreateComponents;
@@ -167,6 +169,7 @@ type
     procedure PSSizeObserver(const AValue: TSizeData);
     procedure PSPositionObserver(const AValue: TPositionData);
     procedure PSCloseProgramObserver;
+    procedure PSShowLogObserver;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -222,7 +225,7 @@ var
 begin
   mBoxEdit := Factory2.Locate<IDesignComponentVBox>;
   (mBoxEdit as INode).AddChild(Morph.WrapUp(fLinkEdit, 30, 'Link:', 100) as INode);
-  (mBoxEdit as INode).AddChild(Morph.WrapUpElastic(fRemarkEdit, 'Remark:', 100) as INode);
+  (mBoxEdit as INode).AddChild(Morph.WrapUp(fRemarkEdit, 400, 'Remark:', 100) as INode);
   mBox := Factory2.Locate<IDesignComponentHBox>;
   (mBox as INode).AddChild(fGrid as INode);
   (mBox as INode).AddChild(mBoxEdit as INode);
@@ -290,7 +293,7 @@ begin
     .SetStr(cProps.ID, 'mainform')
     .SetIntf('PSGUIChannel', fPSGUIChannel)
     .SetStr(cProps.Caption, 'past ... password storage')
-    .SetInt(cProps.Layout, cLayout.Overlay)
+    .SetInt(cProps.Layout, cLayout.Vertical)
     );
   Result.PSSizeChannel.Subscribe(PSSizeObserver);
   Result.PSPositionChannel.Subscribe(PSPositionObserver);
@@ -298,6 +301,16 @@ begin
   for mDC in ADCs do begin
     (Result as INode).AddChild(mDC as INode);
   end;
+end;
+
+function TGUI.NewLogButton: IDesignComponentButton;
+begin
+  Result := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Place, cPlace.FixFront)
+    .SetInt(cProps.MMHeight, 50)
+    .SetStr(cProps.Text, 'SHOW LOG')
+  );
+  Result.PSClickChannel.Subscribe(PSShowLogObserver);
 end;
 
 function TGUI.NewStore: IGUIStore;
@@ -314,14 +327,13 @@ procedure TGUI.CreateComponents;
 begin
   fOpenStore := NewStore;
   fPasswords := NewPasswords;
-  fForm := NewForm([fPasswords, fOpenStore]);
+  fForm := NewForm([]);
 end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
 begin
   fAppSettings.ItemByName['Width'].AsInteger := AValue.Width;
   fAppSettings.ItemByName['Height'].AsInteger := AValue.Height;
-  PSGUIChannel.Debounce(TGUIData.Create(gaRender));
 end;
 
 procedure TGUI.PSPositionObserver(const AValue: TPositionData);
@@ -337,6 +349,11 @@ begin
   raise ELaunchStop.Create('');
 end;
 
+procedure TGUI.PSShowLogObserver;
+begin
+  Log.Visible := not Log.Visible;
+end;
+
 procedure TGUI.InitValues;
 begin
   inherited InitValues;
@@ -349,14 +366,17 @@ end;
 
 function TGUI.DoCompose: IMetaElement;
 begin
+  Result := fForm.Compose;
   if Store.IsOpened then begin
     if not fIsOpened then begin
       fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
-      (fForm as INode).ExchangeChild(fOpenStore as INode, fPasswords as INode);
       fIsOpened := True;
     end;
+    (Result as INode).AddChild(fPasswords.Compose as INode);
+  end else begin
+    (Result as INode).AddChild(fOpenStore.Compose as INode);
   end;
-  Result := fForm.Compose;
+  //(Result as INode).AddChild(NewLogButton.Compose as INode);
 end;
 
 { TGUIStore }
@@ -511,6 +531,7 @@ begin
   RegReact.RegisterCommon;
   RegReact.RegisterPubSubLauncher;
   RegApps.RegisterWindowLog;
+
   mReg := RegReact.RegisterDesignComponent(TGUI, IDesignComponentApp);
   mReg.InjectProp('Store', IPersistStore);
   mReg.InjectProp('SettingsStore', IPersistStore, 'settings');
