@@ -18,8 +18,6 @@ type
   private
     fKey: string;
   protected
-    procedure CheckKey;
-  protected
     function Decode(const AData: String): String;
     function Encode(const AData: String): String;
     procedure Decode(AInStream, AOutStream: TStream);
@@ -33,17 +31,10 @@ implementation
 
 { TCryptic }
 
-procedure TCryptic.CheckKey;
-begin
-  if fKey = '' then
-    raise ECryptic.Create('Invalid Key');
-end;
-
 function TCryptic.Decode(const AData: String): String;
 var
   mCipher: TDCP_twofish;
 begin
-  CheckKey;
   if AData = '' then
   begin
     Result := '';
@@ -62,7 +53,6 @@ function TCryptic.Encode(const AData: String): String;
 var
   mCipher: TDCP_twofish;
 begin
-  CheckKey;
   mCipher := TDCP_twofish.Create(nil);
   try
     mCipher.InitStr(fKey, TDCP_sha256);
@@ -76,7 +66,6 @@ procedure TCryptic.Decode(AInStream, AOutStream: TStream);
 var
   mCipher: TDCP_twofish;
 begin
-  CheckKey;
   mCipher:= TDCP_twofish.Create(nil);
   try
     mCipher.InitStr(fKey, TDCP_sha256);
@@ -92,7 +81,6 @@ procedure TCryptic.Encode(AInStream, AOutStream: TStream);
 var
   mCipher: TDCP_twofish;
 begin
-  CheckKey;
   mCipher := TDCP_twofish.Create(nil);
   try
     mCipher.InitStr(fKey, TDCP_sha256);

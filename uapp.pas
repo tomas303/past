@@ -77,6 +77,7 @@ type
 
   IGUIStore = interface(IDesignComponent)
   ['{7B5E661F-B0BD-4A09-B665-D126B19F4088}']
+    procedure Close;
     function GetFileEdit: IDesignComponentEdit;
     property FileEdit: IDesignComponentEdit read GetFileEdit;
   end;
@@ -98,7 +99,9 @@ type
     function DoCompose: IMetaElement; override;
   private
     function GetFileEdit: IDesignComponentEdit;
+    procedure Close;
   protected
+    fUsedKey: String;
     fCryptic: ICryptic;
     fEncryptedStore: IPersistStore;
     fDecryptedStore: IPersistStore;
@@ -156,6 +159,7 @@ type
     function GetAppSettings: IRBData;
     procedure PublishAppSettings;
   private
+    fDataConnector: IDataConnector;
     fForm: IDesignComponentForm;
     fOpenStore: IGUIStore;
     fPasswords: IGUIPasswords;
@@ -165,6 +169,9 @@ type
     function NewStore: IGUIStore;
     function NewPasswords: IGUIPasswords;
     procedure CreateComponents;
+  private
+    function GetPasswords: IPersistRefList;
+    procedure CreateDataConnectors;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
     procedure PSPositionObserver(const AValue: TPositionData);
@@ -330,6 +337,21 @@ begin
   fForm := NewForm([]);
 end;
 
+function TGUI.GetPasswords: IPersistRefList;
+begin
+  Result := (Store as IPersistQuery).SelectClass(TPassword.ClassName);
+end;
+
+procedure TGUI.CreateDataConnectors;
+begin
+  fDataConnector := Factory2.Locate<IDataConnector>('TStoreConnector', NewProps.SetIntf('List', GetPasswords));
+  fDataConnector.RegisterEdit('Login', fPasswords.LoginEdit);
+  fDataConnector.RegisterEdit('Password', fPasswords.PasswordEdit);
+  fDataConnector.RegisterEdit('Link', fPasswords.LinkEdit);
+  fDataConnector.RegisterEdit('Remark', fPasswords.RemarkEdit);
+  fDataConnector.RegisterGrid(TArray<String>.Create('Login', 'Password'), fPasswords.Grid, TPassword);
+end;
+
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
 begin
   fAppSettings.ItemByName['Width'].AsInteger := AValue.Width;
@@ -346,6 +368,8 @@ procedure TGUI.PSCloseProgramObserver;
 begin
   SettingsStore.Save(fAppSettings);
   SettingsStore.Close;
+  if fIsOpened then
+    fOpenStore.Close;
   raise ELaunchStop.Create('');
 end;
 
@@ -360,7 +384,6 @@ begin
   SettingsStore.Open('~/settings.xml');
   fAppSettings := GetAppSettings;
   CreateComponents;
-  //CreateDataConnectors;
   PublishAppSettings;
 end;
 
@@ -369,6 +392,7 @@ begin
   Result := fForm.Compose;
   if Store.IsOpened then begin
     if not fIsOpened then begin
+      CreateDataConnectors;
       fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
       fIsOpened := True;
     end;
@@ -421,7 +445,11 @@ var
 begin
   mData := TMemoryStream.Create;
   try
+    fUsedKey := APassword;
+    UniqueString(fUsedKey);
     Cryptic.Key := APassword;
+    if fUsedKey <> Cryptic.Key then
+      raise Exception.Create('criptic key mismatch');
     if ACryptedData.Size > 0 then begin
       try
         ACryptedData.Position := 0;
@@ -450,6 +478,8 @@ begin
   try
     DecryptedStore.Close(mData);
     Result := TMemoryStream.Create;
+    if fUsedKey <> Cryptic.Key then
+      raise Exception.Create('criptic key mismatch');
     Cryptic.Encode(mData, Result);
   finally
     mData.Free;
@@ -499,6 +529,18 @@ end;
 function TGUIStore.GetFileEdit: IDesignComponentEdit;
 begin
   Result := fFileEdit;
+end;
+
+procedure TGUIStore.Close;
+var
+  mEncrypted: TStream;
+begin
+  mEncrypted := CloseDecryptedStore;
+  try
+    CloseEncryptedStore(mEncrypted);
+  finally
+    mEncrypted.Free;
+  end;
 end;
 
 { TCrypto }
