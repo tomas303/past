@@ -126,7 +126,7 @@
         <PackageName Value="LCL"/>
       </Item6>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="3">
       <Unit0>
         <Filename Value="past.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -139,14 +139,6 @@
         <Filename Value="uCryptic.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
-      <Unit3>
-        <Filename Value="text.txt"/>
-        <IsPartOfProject Value="True"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="text1.txt"/>
-        <IsPartOfProject Value="True"/>
-      </Unit4>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

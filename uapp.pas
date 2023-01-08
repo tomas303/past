@@ -133,12 +133,12 @@ type
     function GetLoginEdit: IDesignComponentEdit;
     function GetPasswordEdit: IDesignComponentEdit;
     function GetLinkEdit: IDesignComponentEdit;
-    function GetRemarkEdit: IDesignComponentEdit;
+    function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
     property LoginEdit: IDesignComponentEdit read GetLoginEdit;
     property PasswordEdit: IDesignComponentEdit read GetPasswordEdit;
     property LinkEdit: IDesignComponentEdit read GetLinkEdit;
-    property RemarkEdit: IDesignComponentEdit read GetRemarkEdit;
+    property RemarkEdit: IDesignComponentMemo read GetRemarkEdit;
     property Grid: IDesignComponentGrid read GetGrid;
   end;
 
@@ -149,7 +149,7 @@ type
     fLoginEdit: IDesignComponentEdit;
     fPasswordEdit: IDesignComponentEdit;
     fLinkEdit: IDesignComponentEdit;
-    fRemarkEdit: IDesignComponentEdit;
+    fRemarkEdit: IDesignComponentMemo;
     fGrid: IDesignComponentGrid;
   protected
     procedure InitValues; override;
@@ -157,7 +157,7 @@ type
     function GetLoginEdit: IDesignComponentEdit;
     function GetPasswordEdit: IDesignComponentEdit;
     function GetLinkEdit: IDesignComponentEdit;
-    function GetRemarkEdit: IDesignComponentEdit;
+    function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
   protected
     fPSGUIChannel: IPSGUIChannel;
@@ -229,7 +229,7 @@ begin
   fLinkEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
     .SetStr(cProps.ID, 'passwords_link')
     );
-  fRemarkEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
+  fRemarkEdit := Factory2.Locate<IDesignComponentMemo>(NewComposeProps
     .SetStr(cProps.ID, 'passwords_remark')
     );
   fGrid := Factory2.Locate<IDesignComponentGrid>(NewComposeProps
@@ -275,7 +275,7 @@ begin
   Result := fLinkEdit;
 end;
 
-function TGUIPasswords.GetRemarkEdit: IDesignComponentEdit;
+function TGUIPasswords.GetRemarkEdit: IDesignComponentMemo;
 begin
   Result := fRemarkEdit;
 end;
@@ -385,7 +385,7 @@ begin
   fDataConnector.RegisterEdit('Login', fPasswords.LoginEdit);
   fDataConnector.RegisterEdit('Password', fPasswords.PasswordEdit);
   fDataConnector.RegisterEdit('Link', fPasswords.LinkEdit);
-  fDataConnector.RegisterEdit('Remark', fPasswords.RemarkEdit);
+  fDataConnector.RegisterMemo('Remark', fPasswords.RemarkEdit);
   fDataConnector.RegisterGrid(TArray<String>.Create('Login', 'Password'), fPasswords.Grid, TPassword);
 end;
 
