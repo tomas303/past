@@ -28,20 +28,34 @@ type
     procedure RegisterAppServices; override;
   end;
 
-  { TAppSettings }
 
-  TAppSettings = class
+  { TAppSettingsForm }
+
+  TAppSettingsForm = class
   private
     fTop: Integer;
     fLeft: Integer;
     fWidth: Integer;
     fHeight: Integer;
-    fLastOpenedFile: String;
   published
     property Top: Integer read fTop write fTop;
     property Left: Integer read fLeft write fLeft;
     property Width: Integer read fWidth write fWidth;
     property Height: Integer read fHeight write fHeight;
+  end;
+
+  { TAppSettings }
+
+  TAppSettings = class
+  private
+    fOpenForm: TAppSettingsForm;
+    fEditForm: TAppSettingsForm;
+    fLastOpenedFile: String;
+  public
+    procedure BeforeDestruction; override;
+  published
+    property OpenForm: TAppSettingsForm read fOpenForm write fOpenForm;
+    property EditForm: TAppSettingsForm read fEditForm write fEditForm;
     property LastOpenedFile: String read fLastOpenedFile write fLastOpenedFile;
   end;
 
@@ -64,12 +78,11 @@ type
 
   TCrypto = class
   private
-    fData: TStream;
+    fData: TMemoryStream;
   public
-    procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
   published
-    property Data: TStream read fData write fData;
+    property Data: TMemoryStream read fData write fData;
   end;
 
 
@@ -194,6 +207,14 @@ type
 
 implementation
 
+{ TAppSettings }
+
+procedure TAppSettings.BeforeDestruction;
+begin
+  fEditForm.Free;
+  inherited BeforeDestruction;
+end;
+
 { TGUIPasswords }
 
 procedure TGUIPasswords.InitValues;
@@ -269,15 +290,22 @@ end;
 function TGUI.GetAppSettings: IRBData;
 var
   mList: IPersistRefList;
+  mF: TAppSettingsForm;
 begin
   mList := (SettingsStore as IPersistQuery).SelectClass(TAppSettings.ClassName);
   if mList.Count = 0 then
   begin
     Result := PersistFactory.Create(IRBData, TAppSettings.ClassName) as IRBData;
-    Result.ItemByName['Width'].AsInteger := 600;
-    Result.ItemByName['Height'].AsInteger := 200;
-    Result.ItemByName['Left'].AsInteger := 300;
-    Result.ItemByName['Top'].AsInteger := 400;
+    mF := (Result.UnderObject as TAppSettings).OpenForm;
+    mF.Width := 600;
+    mF.Height := 200;
+    mF.Left := 300;
+    mF.Top := 400;
+    mF := (Result.UnderObject as TAppSettings).EditForm;
+    mF.Width := 600;
+    mF.Height := 600;
+    mF.Left := 300;
+    mF.Top := 400;
   end
   else
   begin
@@ -286,10 +314,19 @@ begin
 end;
 
 procedure TGUI.PublishAppSettings;
+var
+  mF: TAppSettingsForm;
 begin
-  fForm.PSSizeChannel.Publish(TSizeData.Create(Self, fAppSettings.ItemByName['Width'].AsInteger, fAppSettings.ItemByName['Height'].AsInteger));
-  fForm.PSPositionChannel.Publish(TPositionData.Create(Self, fAppSettings.ItemByName['Left'].AsInteger, fAppSettings.ItemByName['Top'].AsInteger));
-  fOpenStore.FileEdit.PSTextChannel.Publish(fAppSettings.ItemByName['LastOpenedFile'].AsString);
+  if fStore.IsOpened then begin
+    mF := (fAppSettings.UnderObject as TAppSettings).EditForm;
+    fForm.PSSizeChannel.Publish(TSizeData.Create(Self, mF.Width, mF.Height));
+    fForm.PSPositionChannel.Publish(TPositionData.Create(Self, mF.Left, mF.Top));
+  end else begin
+    mF := (fAppSettings.UnderObject as TAppSettings).OpenForm;
+    fForm.PSSizeChannel.Publish(TSizeData.Create(Self, mF.Width, mF.Height));
+    fForm.PSPositionChannel.Publish(TPositionData.Create(Self, mF.Left, mF.Top));
+    fOpenStore.FileEdit.PSTextChannel.Publish(fAppSettings.ItemByName['LastOpenedFile'].AsString);
+  end;
 end;
 
 function TGUI.NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
@@ -354,14 +391,24 @@ end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
 begin
-  fAppSettings.ItemByName['Width'].AsInteger := AValue.Width;
-  fAppSettings.ItemByName['Height'].AsInteger := AValue.Height;
+  if fStore.IsOpened then begin
+    (fAppSettings.UnderObject as TAppSettings).EditForm.Width := AValue.Width;
+    (fAppSettings.UnderObject as TAppSettings).EditForm.Height := AValue.Height;
+  end else begin
+    (fAppSettings.UnderObject as TAppSettings).OpenForm.Width := AValue.Width;
+    (fAppSettings.UnderObject as TAppSettings).OpenForm.Height := AValue.Height;
+  end;
 end;
 
 procedure TGUI.PSPositionObserver(const AValue: TPositionData);
 begin
-  fAppSettings.ItemByName['Left'].AsInteger := AValue.Left;
-  fAppSettings.ItemByName['Top'].AsInteger := AValue.Top;
+  if fStore.IsOpened then begin
+    (fAppSettings.UnderObject as TAppSettings).EditForm.Left := AValue.Left;
+    (fAppSettings.UnderObject as TAppSettings).EditForm.Top := AValue.Top;
+  end else begin
+    (fAppSettings.UnderObject as TAppSettings).OpenForm.Left := AValue.Left;
+    (fAppSettings.UnderObject as TAppSettings).OpenForm.Top := AValue.Top;
+  end;
 end;
 
 procedure TGUI.PSCloseProgramObserver;
@@ -395,6 +442,7 @@ begin
       CreateDataConnectors;
       fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
       fIsOpened := True;
+      PublishAppSettings;
     end;
     (Result as INode).AddChild(fPasswords.Compose as INode);
   end else begin
@@ -545,12 +593,6 @@ end;
 
 { TCrypto }
 
-procedure TCrypto.AfterConstruction;
-begin
-  inherited AfterConstruction;
-  fData := TMemoryStream.Create;
-end;
-
 procedure TCrypto.BeforeDestruction;
 begin
   FreeAndNil(fData);
@@ -604,9 +646,14 @@ begin
   //
   mReg := DIC.Add(TPersistRefList, IPersistRefList);
   // persist data
+  RegisterDataClass(DIC, TAppSettingsForm);
   RegisterDataClass(DIC, TAppSettings);
   RegisterDataClass(DIC, TPassword);
+
+
+  mReg := DIC.Add(TMemoryStream);
   RegisterDataClass(DIC, TCrypto);
+
   mReg := DIC.Add(TPersistRef<TAppSettings>, IPersistRef, TAppSettings.ClassName);
   mReg.InjectProp('Store', IPersistStore);
   mReg := DIC.Add(TPersistRef<TPassword>, IPersistRef, TPassword.ClassName);
