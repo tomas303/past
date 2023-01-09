@@ -14,7 +14,7 @@ uses
   trl_upersistxml,
   rea_idata, sysutils,
   trl_icryptic, uCryptic,
-  tvl_itimer;
+  tvl_itimer, trl_usystem;
 
 type
 
@@ -31,7 +31,7 @@ type
 
   { TAppSettingsForm }
 
-  TAppSettingsForm = class
+  TAppSettingsForm = class(TPlainObject)
   private
     fTop: Integer;
     fLeft: Integer;
@@ -46,13 +46,11 @@ type
 
   { TAppSettings }
 
-  TAppSettings = class
+  TAppSettings = class(TPlainObject)
   private
     fOpenForm: TAppSettingsForm;
     fEditForm: TAppSettingsForm;
     fLastOpenedFile: String;
-  public
-    procedure BeforeDestruction; override;
   published
     property OpenForm: TAppSettingsForm read fOpenForm write fOpenForm;
     property EditForm: TAppSettingsForm read fEditForm write fEditForm;
@@ -208,12 +206,6 @@ type
 implementation
 
 { TAppSettings }
-
-procedure TAppSettings.BeforeDestruction;
-begin
-  fEditForm.Free;
-  inherited BeforeDestruction;
-end;
 
 { TGUIPasswords }
 
