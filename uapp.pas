@@ -14,7 +14,7 @@ uses
   trl_upersistxml,
   rea_idata, sysutils,
   trl_icryptic, uCryptic,
-  tvl_itimer, trl_usystem;
+  trl_usystem;
 
 type
 
@@ -230,7 +230,6 @@ begin
     .SetInt(cGrid.RowCount, 30)
     .SetInt(cGrid.ColCount, 2)
     .SetInt(cGrid.RowMMHeight, 25)
-    .SetInt(cGrid.ColMMWidth, 25)
     .SetInt(cGrid.LaticeColColor, clBlack)
     .SetInt(cGrid.LaticeRowColor, clBlack)
     .SetInt(cGrid.LaticeColSize, 2)
@@ -311,13 +310,13 @@ var
 begin
   if fStore.IsOpened then begin
     mF := (fAppSettings.UnderObject as TAppSettings).EditForm;
-    fForm.PSSizeChannel.Publish(TSizeData.Create(Self, mF.Width, mF.Height));
-    fForm.PSPositionChannel.Publish(TPositionData.Create(Self, mF.Left, mF.Top));
+    fForm.PSSizeChannel.Debounce(TSizeData.Create(Self, mF.Width, mF.Height));
+    fForm.PSPositionChannel.Debounce(TPositionData.Create(Self, mF.Left, mF.Top));
   end else begin
     mF := (fAppSettings.UnderObject as TAppSettings).OpenForm;
-    fForm.PSSizeChannel.Publish(TSizeData.Create(Self, mF.Width, mF.Height));
-    fForm.PSPositionChannel.Publish(TPositionData.Create(Self, mF.Left, mF.Top));
-    fOpenStore.FileEdit.PSTextChannel.Publish(fAppSettings.ItemByName['LastOpenedFile'].AsString);
+    fForm.PSSizeChannel.Debounce(TSizeData.Create(Self, mF.Width, mF.Height));
+    fForm.PSPositionChannel.Debounce(TPositionData.Create(Self, mF.Left, mF.Top));
+    fOpenStore.FileEdit.PSTextChannel.Debounce(fAppSettings.ItemByName['LastOpenedFile'].AsString);
   end;
 end;
 
@@ -343,7 +342,7 @@ function TGUI.NewLogButton: IDesignComponentButton;
 begin
   Result := Factory2.Locate<IDesignComponentButton>(NewProps
     .SetInt(cProps.Place, cPlace.FixFront)
-    .SetInt(cProps.MMHeight, 50)
+    .SetInt(cProps.PlaceSize, 50)
     .SetStr(cProps.Text, 'SHOW LOG')
   );
   Result.PSClickChannel.Subscribe(PSShowLogObserver);
