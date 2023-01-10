@@ -10,7 +10,7 @@ uses
   trl_imetaelement, trl_iprops, trl_dicontainer, trl_itree,
   trl_pubsub, rea_ibits, trl_ilauncher,
   trl_urttibroker, trl_irttibroker,
-  trl_upersiststore, trl_ipersist,
+  trl_upersiststore, trl_ipersist, trl_upersist,
   trl_upersistxml,
   rea_idata, sysutils,
   trl_icryptic, uCryptic,
@@ -65,11 +65,13 @@ type
     fPassword: string;
     fLink: string;
     fRemark: string;
+    fTags: IPersistManyStrings;
   published
     property Login: string read fLogin write fLogin;
     property Password: string read fPassword write fPassword;
     property Link: string read fLink write fLink;
     property Remark: string read fRemark write fRemark;
+    property Tags: IPersistManyStrings read fTags write fTags;
   end;
 
   { TCrypto }
@@ -636,6 +638,11 @@ begin
   mReg.InjectProp('Store', IPersistStore);
   //
   mReg := DIC.Add(TPersistRefList, IPersistRefList);
+
+  //
+  mReg := DIC.Add(TPersistManyIntegers, IPersistManyIntegers);
+  mReg := DIC.Add(TPersistManyStrings, IPersistManyStrings);
+
   // persist data
   RegisterDataClass(DIC, TAppSettingsForm);
   RegisterDataClass(DIC, TAppSettings);
@@ -674,7 +681,7 @@ begin
   //
   mReg := DIC.Add(TPersistFactory, IPersistFactory);
   mReg.InjectProp('Container', TDIContainer);
-end;
+  end;
 
 procedure TApp.RegisterAppServices;
 begin
