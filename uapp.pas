@@ -1,6 +1,8 @@
 unit uapp;
 
-{$mode delphi}{$H+}
+{$mode delphi}{$H+}{$M+}
+{$ModeSwitch functionreferences}
+{$ModeSwitch anonymousfunctions}
 
 interface
 
@@ -10,11 +12,12 @@ uses
   trl_imetaelement, trl_iprops, trl_dicontainer, trl_itree,
   trl_pubsub, rea_ibits, trl_ilauncher,
   trl_urttibroker, trl_irttibroker,
-  trl_upersiststore, trl_ipersist, trl_upersist,
+  trl_ipersist, trl_upersist,
   trl_upersistxml,
   rea_idata, sysutils,
   trl_icryptic, uCryptic,
-  trl_usystem;
+  trl_usystem,
+  trl_udifactory;
 
 type
 
@@ -48,13 +51,48 @@ type
 
   TAppSettings = class(TPlainObject)
   private
+    fID: String;
     fOpenForm: TAppSettingsForm;
     fEditForm: TAppSettingsForm;
     fLastOpenedFile: String;
   published
+    [PersistIDAttribute, PersistAUTOAttribute]
+    property ID: String read fID write fID;
     property OpenForm: TAppSettingsForm read fOpenForm write fOpenForm;
     property EditForm: TAppSettingsForm read fEditForm write fEditForm;
     property LastOpenedFile: String read fLastOpenedFile write fLastOpenedFile;
+  end;
+
+
+  { IDataListAppSettings }
+
+  IDataListAppSettings = interface(IMiniDataList<TAppSettings>)
+  ['{C3947554-8939-40B2-8EDB-720A4E089170}']
+  end;
+
+  { TDataListAppSettings }
+
+  TDataListAppSettings = class(TMiniDataList<TAppSettings>, IDataListAppSettings)
+  end;
+
+  { TTag }
+
+  TTag = class
+  private
+    fVal: String;
+  published
+    property Val: String read fVal write fVal;
+  end;
+
+  { IListTags }
+
+  IListTags = interface(IMiniList<TTag>)
+  ['{9645123C-1BD7-4113-85EB-E3664B1610E9}']
+  end;
+
+  { TListTags }
+
+  TListTags = class(TMiniList<TTag>, IListTags)
   end;
 
   { TPassword }
@@ -65,26 +103,50 @@ type
     fPassword: string;
     fLink: string;
     fRemark: string;
-    fTags: IPersistManyStrings;
+    fTags: IListTags;
   published
     property Login: string read fLogin write fLogin;
     property Password: string read fPassword write fPassword;
     property Link: string read fLink write fLink;
     property Remark: string read fRemark write fRemark;
-    property Tags: IPersistManyStrings read fTags write fTags;
+    property Tags: IListTags read fTags write fTags;
+  end;
+
+  { IDataListPassword }
+
+  IDataListPassword = interface(IMiniDataList<TPassword>)
+  ['{35164555-97D5-4447-A762-8565C39C076E}']
+  end;
+
+  { TDataListPassword }
+
+  TDataListPassword = class(TMiniDataList<TPassword>, IDataListPassword)
   end;
 
   { TCrypto }
 
   TCrypto = class
   private
+    fID: String;
     fData: TMemoryStream;
   public
     procedure BeforeDestruction; override;
   published
+    [PersistIDAttribute, PersistAUTOAttribute]
+    property ID: String read fID write fID;
     property Data: TMemoryStream read fData write fData;
   end;
 
+  { IDataListCrypto }
+
+  IDataListCrypto = interface(IMiniDataList<TCrypto>)
+  ['{A8C74445-4478-4C28-95DC-13B48A638A00}']
+  end;
+
+  { TDataListCrypto }
+
+  TDataListCrypto = class(TMiniDataList<TCrypto>, IDataListCrypto)
+  end;
 
   { IGUIStore }
 
@@ -116,13 +178,13 @@ type
   protected
     fUsedKey: String;
     fCryptic: ICryptic;
-    fEncryptedStore: IPersistStore;
-    fDecryptedStore: IPersistStore;
+    fEncryptedStore: IPersistStoreDevice;
+    fDecryptedStore: IPersistStoreDevice;
     fPSGUIChannel: IPSGUIChannel;
   published
     property Cryptic: ICryptic read fCryptic write fCryptic;
-    property EncryptedStore: IPersistStore read fEncryptedStore write fEncryptedStore;
-    property DecryptedStore: IPersistStore read fDecryptedStore write fDecryptedStore;
+    property EncryptedStore: IPersistStoreDevice read fEncryptedStore write fEncryptedStore;
+    property DecryptedStore: IPersistStoreDevice read fDecryptedStore write fDecryptedStore;
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
 
@@ -183,7 +245,8 @@ type
     function NewPasswords: IGUIPasswords;
     procedure CreateComponents;
   private
-    function GetPasswords: IPersistRefList;
+    fPasswordsData: IDataListPassword;
+    function GetPasswordsData: IDataListPassword;
     procedure CreateDataConnectors;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
@@ -194,13 +257,13 @@ type
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
   protected
-    fStore: IPersistStore;
-    fSettingsStore: IPersistStore;
+    fStore: IPersistStoreDevice;
+    fSettingsStore: IPersistStoreDevice;
     fPersistFactory: IPersistFactory;
     fPSGUIChannel: IPSGUIChannel;
   published
-    property Store: IPersistStore read fStore write fStore;
-    property SettingsStore: IPersistStore read fSettingsStore write fSettingsStore;
+    property Store: IPersistStoreDevice read fStore write fStore;
+    property SettingsStore: IPersistStoreDevice read fSettingsStore write fSettingsStore;
     property PersistFactory: IPersistFactory read fPersistFactory write fPersistFactory;
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
@@ -282,12 +345,13 @@ end;
 
 function TGUI.GetAppSettings: IRBData;
 var
-  mList: IPersistRefList;
+  mEnum: IRBDataEnumerator;
   mF: TAppSettingsForm;
 begin
-  mList := (SettingsStore as IPersistQuery).SelectClass(TAppSettings.ClassName);
-  if mList.Count = 0 then
-  begin
+  mEnum := SettingsStore.Select2(TAppSettings.ClassName).GetEnumerator;
+  if mEnum.MoveNext then
+    Result := mEnum.Current
+  else begin
     Result := PersistFactory.Create(IRBData, TAppSettings.ClassName) as IRBData;
     mF := (Result.UnderObject as TAppSettings).OpenForm;
     mF.Width := 600;
@@ -299,12 +363,9 @@ begin
     mF.Height := 600;
     mF.Left := 300;
     mF.Top := 400;
-  end
-  else
-  begin
-    Result := mList.Data[0];
   end;
 end;
+
 
 procedure TGUI.PublishAppSettings;
 var
@@ -318,7 +379,7 @@ begin
     mF := (fAppSettings.UnderObject as TAppSettings).OpenForm;
     fForm.PSSizeChannel.Debounce(TSizeData.Create(Self, mF.Width, mF.Height));
     fForm.PSPositionChannel.Debounce(TPositionData.Create(Self, mF.Left, mF.Top));
-    fOpenStore.FileEdit.PSTextChannel.Debounce(fAppSettings.ItemByName['LastOpenedFile'].AsString);
+    fOpenStore.FileEdit.PSTextChannel.Debounce((fAppSettings.UnderObject as TAppSettings).LastOpenedFile);
   end;
 end;
 
@@ -367,19 +428,21 @@ begin
   fForm := NewForm([]);
 end;
 
-function TGUI.GetPasswords: IPersistRefList;
+function TGUI.GetPasswordsData: IDataListPassword;
 begin
-  Result := (Store as IPersistQuery).SelectClass(TPassword.ClassName);
+  Result := Factory2.Locate<IDataListPassword>;
+  Result.Load;
 end;
 
 procedure TGUI.CreateDataConnectors;
 begin
-  fDataConnector := Factory2.Locate<IDataConnector>('TStoreConnector', NewProps.SetIntf('List', GetPasswords));
+  fDataConnector := Factory2.Locate<IDataConnector>('TStoreConnector');
   fDataConnector.RegisterEdit('Login', fPasswords.LoginEdit);
   fDataConnector.RegisterEdit('Password', fPasswords.PasswordEdit);
   fDataConnector.RegisterEdit('Link', fPasswords.LinkEdit);
   fDataConnector.RegisterMemo('Remark', fPasswords.RemarkEdit);
   fDataConnector.RegisterGrid(TArray<String>.Create('Login', 'Password'), fPasswords.Grid, TPassword);
+  fDataConnector.PSListChangeChannel.Publish(TListChange.New(fPasswordsData.NewList));
 end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
@@ -406,7 +469,8 @@ end;
 
 procedure TGUI.PSCloseProgramObserver;
 begin
-  SettingsStore.Save(fAppSettings);
+  fPasswordsData.Save;
+  SettingsStore.Save2(fAppSettings);
   SettingsStore.Close;
   if fIsOpened then
     fOpenStore.Close;
@@ -432,6 +496,7 @@ begin
   Result := fForm.Compose;
   if Store.IsOpened then begin
     if not fIsOpened then begin
+      fPasswordsData := GetPasswordsData;
       CreateDataConnectors;
       fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
       fIsOpened := True;
@@ -448,35 +513,31 @@ end;
 
 function TGUIStore.OpenEncryptedStore(const AFile: String): TStream;
 var
-  mList: IPersistRefList;
+  mEnum: IRBDataEnumerator;
 begin
   Result := TMemoryStream.Create;
   EncryptedStore.Open(AFile);
-  mList := (EncryptedStore as IPersistQuery).SelectClass(TCrypto.ClassName);
-  if mList.Count > 0 then
-  begin
-    Result.CopyFrom(mList.Data[0].ItemByName['Data'].AsObject as TStream, 0);
+  mEnum := EncryptedStore.Select2(TCrypto.ClassName).GetEnumerator;
+  if mEnum.MoveNext then begin
+    Result.CopyFrom(mEnum.Current.ItemByName['Data'].AsObject as TStream, 0);
   end;
 end;
 
 procedure TGUIStore.CloseEncryptedStore(const AData: TStream);
 var
-  mList: IPersistRefList;
   mData: IRBData;
+  mEnum: IRBDataEnumerator;
 begin
-  mList := (EncryptedStore as IPersistQuery).SelectClass(TCrypto.ClassName);
-  if mList.Count = 0 then
-  begin
+  mEnum := EncryptedStore.Select2(TCrypto.ClassName).GetEnumerator;
+  if mEnum.MoveNext then begin
+    mData := mEnum.Current;
+  end else begin
     mData := Factory2.Locate<IRBData>(TCrypto.ClassName);
-  end
-  else
-  begin
-    mData := mList.Data[0];
   end;
   AData.Position := 0;
   (mData.ItemByName['Data'].AsObject as TStream).Position := 0;
   (mData.ItemByName['Data'].AsObject as TStream).CopyFrom(AData, 0);
-  EncryptedStore.Save(mData);
+  EncryptedStore.Save2(mData);
   EncryptedStore.Close;
 end;
 
@@ -610,14 +671,14 @@ begin
   RegApps.RegisterWindowLog;
 
   mReg := RegReact.RegisterDesignComponent(TGUI, IDesignComponentApp);
-  mReg.InjectProp('Store', IPersistStore);
-  mReg.InjectProp('SettingsStore', IPersistStore, 'settings');
+  mReg.InjectProp('Store', IPersistStoreDevice);
+  mReg.InjectProp('SettingsStore', IPersistStoreDevice, 'settings');
   mReg.InjectProp('PersistFactory', IPersistFactory);
 
   mReg := RegReact.RegisterDesignComponent(TGUIStore, IGUIStore);
   mReg.InjectProp('Cryptic', ICryptic);
-  mReg.InjectProp('EncryptedStore', IPersistStore, 'encrypted');
-  mReg.InjectProp('DecryptedStore', IPersistStore);
+  mReg.InjectProp('EncryptedStore', IPersistStoreDevice, 'encrypted');
+  mReg.InjectProp('DecryptedStore', IPersistStoreDevice);
 
   mReg := RegReact.RegisterDesignComponent(TGUIPasswords, IGUIPasswords);
 
@@ -627,60 +688,51 @@ procedure TApp.RegisterPersist;
 var
   mReg: TDIReg;
 begin
-  mReg := DIC.Add(TRBData, IRBData);
-  //
-  mReg := DIC.Add(TSIDList, ISIDList);
-  //
-  mReg := DIC.Add(TPersistRef, IPersistRef);
-  mReg.InjectProp('Store', IPersistStore);
-  //
-  mReg := DIC.Add(TPersistManyRefs, IPersistManyRefs);
-  mReg.InjectProp('Store', IPersistStore);
-  //
-  mReg := DIC.Add(TPersistRefList, IPersistRefList);
-
-  //
-  mReg := DIC.Add(TPersistManyIntegers, IPersistManyIntegers);
-  mReg := DIC.Add(TPersistManyStrings, IPersistManyStrings);
-
   // persist data
   RegisterDataClass(DIC, TAppSettingsForm);
   RegisterDataClass(DIC, TAppSettings);
   RegisterDataClass(DIC, TPassword);
 
+  mReg := DIC.Add(TDataListAppSettings, IDataListAppSettings);
+  mReg.InjectProp('PubSub', IPubSub);
+  mReg.InjectProp('Device', IPersistStoreDevice, 'settings');
+  mReg.InjectProp('Factory2', TDIFactory2);
+
+  mReg := DIC.Add(TDataListPassword, IDataListPassword);
+  mReg.InjectProp('PubSub', IPubSub);
+  mReg.InjectProp('Device', IPersistStoreDevice, '');
+  mReg.InjectProp('Factory2', TDIFactory2);
+
+  mReg := DIC.Add(TDataListCrypto, IDataListCrypto);
+  mReg.InjectProp('PubSub', IPubSub);
+  mReg.InjectProp('Device', IPersistStoreDevice, 'encrypted');
+  mReg.InjectProp('Factory2', TDIFactory2);
+
+  mReg := DIC.Add(TListTags, IListTags);
+  mReg.InjectProp('Factory2', TDIFactory2);
+
+
+
+
+  mReg := DIC.Add(TPersistFactory, IPersistFactory);
+  mReg.InjectProp('Container', TDIContainer);
+
+  mReg := DIC.Add(TXmlStore, IPersistStoreDevice, 'settings', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+
+  mReg := DIC.Add(TXmlStore, IPersistStoreDevice, 'encrypted', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+
+  mReg := DIC.Add(TXmlStore, IPersistStoreDevice, '', ckSingle);
+  mReg.InjectProp('Factory', IPersistFactory);
+
+
 
   mReg := DIC.Add(TMemoryStream);
   RegisterDataClass(DIC, TCrypto);
 
-  mReg := DIC.Add(TPersistRef<TAppSettings>, IPersistRef, TAppSettings.ClassName);
-  mReg.InjectProp('Store', IPersistStore);
-  mReg := DIC.Add(TPersistRef<TPassword>, IPersistRef, TPassword.ClassName);
-  mReg.InjectProp('Store', IPersistStore);
-  mReg := DIC.Add(TPersistRef<TCrypto>, IPersistRef, TCrypto.ClassName);
-  mReg.InjectProp('Store', IPersistStore);
-  //
-  mReg := DIC.Add(TStoreCache);
-  //
-  mReg := DIC.Add(TPersistStore, IPersistStore, 'settings', ckSingle);
-  mReg.InjectProp('Factory', IPersistFactory);
-  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Cache', TStoreCache);
-  //
-  mReg := DIC.Add(TPersistStore, IPersistStore, 'encrypted', ckSingle);
-  mReg.InjectProp('Factory', IPersistFactory);
-  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Cache', TStoreCache);
-  //
-  mReg := DIC.Add(TPersistStore, IPersistStore, '', ckSingle);
-  mReg.InjectProp('Factory', IPersistFactory);
-  mReg.InjectProp('Device', IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Cache', TStoreCache);
-  //
-  mReg := DIC.Add(TXmlStore, IPersistStoreDevice, 'xml');
-  mReg.InjectProp('Factory', IPersistFactory);
-  //
-  mReg := DIC.Add(TPersistFactory, IPersistFactory);
-  mReg.InjectProp('Container', TDIContainer);
+
+
   end;
 
 procedure TApp.RegisterAppServices;
