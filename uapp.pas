@@ -99,12 +99,15 @@ type
 
   TPassword = class
   private
+    fID: String;
     fLogin: string;
     fPassword: string;
     fLink: string;
     fRemark: string;
     fTags: IListTags;
   published
+    [PersistIDAttribute, PersistAUTOAttribute]
+    property ID: String read fID write fID;
     property Login: string read fLogin write fLogin;
     property Password: string read fPassword write fPassword;
     property Link: string read fLink write fLink;
@@ -192,11 +195,13 @@ type
 
   IGUIPasswords = interface(IDesignComponent)
   ['{4C326C46-CFB0-469D-BCAF-7819BA5BF2C2}']
+    function GetFilter: IDesignComponentFilter;
     function GetLoginEdit: IDesignComponentEdit;
     function GetPasswordEdit: IDesignComponentEdit;
     function GetLinkEdit: IDesignComponentEdit;
     function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
+    property Filter: IDesignComponentFilter read GetFilter;
     property LoginEdit: IDesignComponentEdit read GetLoginEdit;
     property PasswordEdit: IDesignComponentEdit read GetPasswordEdit;
     property LinkEdit: IDesignComponentEdit read GetLinkEdit;
@@ -208,6 +213,7 @@ type
 
   TGUIPasswords = class(TDesignComponent, IGUIPasswords)
   private
+    fFilter: IDesignComponentFilter;
     fLoginEdit: IDesignComponentEdit;
     fPasswordEdit: IDesignComponentEdit;
     fLinkEdit: IDesignComponentEdit;
@@ -216,6 +222,7 @@ type
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
+    function GetFilter: IDesignComponentFilter;
     function GetLoginEdit: IDesignComponentEdit;
     function GetPasswordEdit: IDesignComponentEdit;
     function GetLinkEdit: IDesignComponentEdit;
@@ -253,6 +260,7 @@ type
     procedure PSPositionObserver(const AValue: TPositionData);
     procedure PSCloseProgramObserver;
     procedure PSShowLogObserver;
+    procedure PSTextFilterChannelObserver(const AValue: String);
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -277,6 +285,9 @@ implementation
 procedure TGUIPasswords.InitValues;
 begin
   inherited InitValues;
+  fFilter := Factory2.Locate<IDesignComponentFilter>(NewComposeProps
+    .SetInt('Interval', 300)
+    );
   fLoginEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
     .SetStr(cProps.ID, 'passwords_login')
     );
@@ -306,6 +317,7 @@ function TGUIPasswords.DoCompose: IMetaElement;
 var
   mBoxEdit: IDesignComponent;
   mBox: IDesignComponent;
+  mAll: IDesignComponent;
 begin
   mBoxEdit := Factory2.Locate<IDesignComponentVBox>;
   (mBoxEdit as INode).AddChild(Morph.WrapUp(fLinkEdit, 30, 'Link:', 100) as INode);
@@ -313,7 +325,16 @@ begin
   mBox := Factory2.Locate<IDesignComponentHBox>;
   (mBox as INode).AddChild(fGrid as INode);
   (mBox as INode).AddChild(mBoxEdit as INode);
-  Result := mBox.Compose;
+  //Result := mBox.Compose;
+  mAll := Factory2.Locate<IDesignComponentVBox>;
+  (mAll as INode).AddChild(Morph.WrapUp(fFilter, 30, 'Filter:', 50) as INode);
+  (mAll as INode).AddChild(mBox as INode);
+  Result := mAll.Compose;
+end;
+
+function TGUIPasswords.GetFilter: IDesignComponentFilter;
+begin
+  Result := fFilter;
 end;
 
 function TGUIPasswords.GetLoginEdit: IDesignComponentEdit;
@@ -419,6 +440,7 @@ end;
 function TGUI.NewPasswords: IGUIPasswords;
 begin
   Result := Factory2.Locate<IGUIPasswords>(NewProps.SetIntf('PSGUIChannel', PSGUIChannel));
+  Result.Filter.PSTextFilterChannel.Subscribe(PSTextFilterChannelObserver);
 end;
 
 procedure TGUI.CreateComponents;
@@ -482,6 +504,22 @@ begin
   Log.Visible := not Log.Visible;
 end;
 
+procedure TGUI.PSTextFilterChannelObserver(const AValue: String);
+begin
+  if AValue = '' then
+    fDataConnector.PSListChangeChannel.Publish(TListChange.New(fPasswordsData.NewList))
+  else
+    fDataConnector.PSListChangeChannel.Publish(TListChange.New(
+      fPasswordsData.NewList(
+        function(const x: IRBData): Boolean
+        begin
+          Result := trl_ipersist.FilterInsensitiveContains(AValue.ToLower, x);
+        end
+      )
+    ));
+  PSGUIChannel.Debounce(TGUIData.Create(gaRender));
+end;
+
 procedure TGUI.InitValues;
 begin
   inherited InitValues;
@@ -535,7 +573,7 @@ begin
     mData := Factory2.Locate<IRBData>(TCrypto.ClassName);
   end;
   AData.Position := 0;
-  (mData.ItemByName['Data'].AsObject as TStream).Position := 0;
+  (mData.ItemByName['Data'].AsObject as TStream).Size := 0;
   (mData.ItemByName['Data'].AsObject as TStream).CopyFrom(AData, 0);
   EncryptedStore.Save2(mData);
   EncryptedStore.Close;
