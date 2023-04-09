@@ -201,12 +201,14 @@ type
     function GetLinkEdit: IDesignComponentEdit;
     function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
+    function GetTags: IDesignComponentGrid;
     property Filter: IDesignComponentFilter read GetFilter;
     property LoginEdit: IDesignComponentEdit read GetLoginEdit;
     property PasswordEdit: IDesignComponentEdit read GetPasswordEdit;
     property LinkEdit: IDesignComponentEdit read GetLinkEdit;
     property RemarkEdit: IDesignComponentMemo read GetRemarkEdit;
     property Grid: IDesignComponentGrid read GetGrid;
+    property Tags: IDesignComponentGrid read GetTags;
   end;
 
   { TGUIPasswords }
@@ -219,6 +221,7 @@ type
     fLinkEdit: IDesignComponentEdit;
     fRemarkEdit: IDesignComponentMemo;
     fGrid: IDesignComponentGrid;
+    fTags: IDesignComponentGrid;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -228,6 +231,7 @@ type
     function GetLinkEdit: IDesignComponentEdit;
     function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
+    function GetTags: IDesignComponentGrid;
   protected
     fPSGUIChannel: IPSGUIChannel;
   published
@@ -242,6 +246,7 @@ type
     procedure PublishAppSettings;
   private
     fDataConnector: IDataConnector;
+    fTagsConnector: IDataConnector;
     fForm: IDesignComponentForm;
     fOpenStore: IGUIStore;
     fPasswords: IGUIPasswords;
@@ -311,6 +316,19 @@ begin
     .SetInt(cGrid.LaticeColSize, 2)
     .SetInt(cGrid.LaticeRowSize, 2)
     );
+  fTags := Factory2.Locate<IDesignComponentGrid>(NewComposeProps
+      .SetStr(cProps.ID, 'tags_grid')
+      .SetIntf('PSGUIChannel', PSGUIChannel)
+      .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+      .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+      .SetInt(cGrid.RowCount, 5)
+      .SetInt(cGrid.ColCount, 1)
+      .SetInt(cGrid.RowMMHeight, 25)
+      .SetInt(cGrid.LaticeColColor, clBlack)
+      .SetInt(cGrid.LaticeRowColor, clBlack)
+      .SetInt(cGrid.LaticeColSize, 1)
+      .SetInt(cGrid.LaticeRowSize, 1)
+      );
 end;
 
 function TGUIPasswords.DoCompose: IMetaElement;
@@ -321,7 +339,8 @@ var
 begin
   mBoxEdit := Factory2.Locate<IDesignComponentVBox>;
   (mBoxEdit as INode).AddChild(Morph.WrapUp(fLinkEdit, 30, 'Link:', 100) as INode);
-  (mBoxEdit as INode).AddChild(Morph.WrapUp(fRemarkEdit, 400, 'Remark:', 100) as INode);
+  (mBoxEdit as INode).AddChild(Morph.WrapUp(fRemarkEdit, 200, 'Remark:', 100) as INode);
+  (mBoxEdit as INode).AddChild(Morph.WrapUpElastic(fTags, 'Tags', 100) as INode);
   mBox := Factory2.Locate<IDesignComponentHBox>;
   (mBox as INode).AddChild(fGrid as INode);
   (mBox as INode).AddChild(mBoxEdit as INode);
@@ -360,6 +379,11 @@ end;
 function TGUIPasswords.GetGrid: IDesignComponentGrid;
 begin
   Result := fGrid;
+end;
+
+function TGUIPasswords.GetTags: IDesignComponentGrid;
+begin
+  Result := fTags;
 end;
 
 { TGUI }
@@ -464,6 +488,11 @@ begin
   fDataConnector.RegisterEdit('Link', fPasswords.LinkEdit);
   fDataConnector.RegisterMemo('Remark', fPasswords.RemarkEdit);
   fDataConnector.RegisterGrid(TArray<String>.Create('Login', 'Password'), fPasswords.Grid, TPassword);
+
+  fTagsConnector := Factory2.Locate<IDataConnector>('TStoreConnector');
+  fTagsConnector.RegisterGrid(TArray<String>.Create('Val'), fPasswords.Tags, TTag);
+  fDataConnector.RegisterConnector('Tags', fTagsConnector);
+
   fDataConnector.PSListChangeChannel.Publish(TListChange.New(fPasswordsData.NewList));
 end;
 
@@ -491,11 +520,12 @@ end;
 
 procedure TGUI.PSCloseProgramObserver;
 begin
-  fPasswordsData.Save;
+  if Store.IsOpened then begin
+    fPasswordsData.Save;
+    fOpenStore.Close;
+  end;
   SettingsStore.Save2(fAppSettings);
   SettingsStore.Close;
-  if fIsOpened then
-    fOpenStore.Close;
   raise ELaunchStop.Create('');
 end;
 
@@ -730,6 +760,7 @@ begin
   RegisterDataClass(DIC, TAppSettingsForm);
   RegisterDataClass(DIC, TAppSettings);
   RegisterDataClass(DIC, TPassword);
+  RegisterDataClass(DIC, TTag);
 
   mReg := DIC.Add(TDataListAppSettings, IDataListAppSettings);
   mReg.InjectProp('PubSub', IPubSub);
