@@ -177,6 +177,7 @@ type
 
   IGUIStore = interface(IDesignComponent)
   ['{7B5E661F-B0BD-4A09-B665-D126B19F4088}']
+    procedure Open;
     procedure Close;
     function GetFileEdit: IDesignComponentEdit;
     property FileEdit: IDesignComponentEdit read GetFileEdit;
@@ -199,6 +200,7 @@ type
     function DoCompose: IMetaElement; override;
   private
     function GetFileEdit: IDesignComponentEdit;
+    procedure Open;
     procedure Close;
   protected
     fUsedKey: String;
@@ -211,6 +213,31 @@ type
     property EncryptedStore: IPersistStoreDevice read fEncryptedStore write fEncryptedStore;
     property DecryptedStore: IPersistStoreDevice read fDecryptedStore write fDecryptedStore;
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
+  end;
+
+  { IGUICommands }
+
+  IGUICommands = interface(IDesignComponent)
+  ['{16AF2812-F1E8-4E6B-B398-9991ADCD263F}']
+    function GetNew: IDesignComponentButton;
+    function GetDelete: IDesignComponentButton;
+    function GetFilter: IDesignComponentButton;
+    property New: IDesignComponentButton read GetNew;
+    property Delete: IDesignComponentButton read GetDelete;
+    property Filter: IDesignComponentButton read GetFilter;
+  end;
+
+  { TGUICommands }
+
+  TGUICommands = class(TDesignComponent, IGUICommands)
+  private
+    fNew, fDelete, fFilter: IDesignComponentButton;
+    function GetNew: IDesignComponentButton;
+    function GetDelete: IDesignComponentButton;
+    function GetFilter: IDesignComponentButton;
+  protected
+    procedure InitValues; override;
+    function DoCompose: IMetaElement; override;
   end;
 
   { IGUIPasswords }
@@ -244,6 +271,7 @@ type
     fRemarkEdit: IDesignComponentMemo;
     fGrid: IDesignComponentGrid;
     fTags: IDesignComponentGrid;
+    fCommands: IGUICommands;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -254,12 +282,12 @@ type
     function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
     function GetTags: IDesignComponentGrid;
+    function GetCommands: IGUICommands;
   protected
     fPSGUIChannel: IPSGUIChannel;
   published
     property PSGUIChannel: IPSGUIChannel read fPSGUIChannel write fPSGUIChannel;
   end;
-
 
   TGUI = class(TDesignComponent, IDesignComponentApp)
   private
@@ -288,6 +316,7 @@ type
     procedure PSCloseProgramObserver;
     procedure PSShowLogObserver;
     procedure PSTextFilterChannelObserver(const AValue: String);
+    procedure PSKeyDownChannelObserver(const AValue: TKeyData);
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -304,6 +333,57 @@ type
   end;
 
 implementation
+
+{ TGUICommands }
+
+function TGUICommands.GetNew: IDesignComponentButton;
+begin
+  Result := fNew;
+end;
+
+function TGUICommands.GetDelete: IDesignComponentButton;
+begin
+  Result := fDelete;
+end;
+
+function TGUICommands.GetFilter: IDesignComponentButton;
+begin
+  Result := fFilter;
+end;
+
+procedure TGUICommands.InitValues;
+begin
+  inherited InitValues;
+  fNew := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+    .SetStr(cProps.ID, 'new')
+    .SetStr(cProps.Text, 'F2 - new'));
+  fDelete := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+    .SetStr(cProps.ID, 'delete')
+    .SetStr(cProps.Text, 'F8 - delete'));
+  fFilter := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+    .SetStr(cProps.ID, 'filter')
+    .SetStr(cProps.Text, 'F7 - filter'));
+end;
+
+function TGUICommands.DoCompose: IMetaElement;
+var
+  mB: IDesignComponent;
+begin
+  mB := Factory2.Locate<IDesignComponentHBox>(NewProps
+    .SetInt(cProps.Layout, cLayout.Horizontal)
+    .SetInt(cProps.BoxLaticeSize, 1)
+    .SetBool(cProps.Transparent, True));
+  (mB as INode).AddChild(fNew as INode);
+  (mB as INode).AddChild(fFilter as INode);
+  (mB as INode).AddChild(fDelete as INode);
+  Result := mB.Compose;
+end;
 
 { TAppSettings }
 
@@ -351,6 +431,10 @@ begin
       .SetInt(cGrid.LaticeColSize, 1)
       .SetInt(cGrid.LaticeRowSize, 1)
       );
+  fCommands := Factory2.Locate<IGUICommands>(NewProps
+   .SetInt(cProps.Color, clLtGray)
+   .SetBool(cProps.Transparent, False)
+  );
 end;
 
 function TGUIPasswords.DoCompose: IMetaElement;
@@ -370,6 +454,7 @@ begin
   mAll := Factory2.Locate<IDesignComponentVBox>;
   (mAll as INode).AddChild(Morph.WrapUp(fFilter, 30, 'Filter:', 50) as INode);
   (mAll as INode).AddChild(mBox as INode);
+  (mAll as INode).AddChild(Morph.WrapInStrip(fCommands, 30, cPlace.FixBack) as INode);
   Result := mAll.Compose;
 end;
 
@@ -406,6 +491,11 @@ end;
 function TGUIPasswords.GetTags: IDesignComponentGrid;
 begin
   Result := fTags;
+end;
+
+function TGUIPasswords.GetCommands: IGUICommands;
+begin
+  Result := fCommands;
 end;
 
 { TGUI }
@@ -463,6 +553,7 @@ begin
   Result.PSSizeChannel.Subscribe(PSSizeObserver);
   Result.PSPositionChannel.Subscribe(PSPositionObserver);
   Result.PSCloseChannel.Subscribe(PSCloseProgramObserver);
+  Result.PSKeyDownChannel.Subscribe(PSKeyDownChannelObserver);
   for mDC in ADCs do begin
     (Result as INode).AddChild(mDC as INode);
   end;
@@ -572,6 +663,21 @@ begin
   PSGUIChannel.Debounce(TGUIData.Create(gaRender));
 end;
 
+procedure TGUI.PSKeyDownChannelObserver(const AValue: TKeyData);
+begin
+  if Store.IsOpened then begin
+    case AValue.ControlKey of
+      ckF2: if AValue.NoModifier then fPasswords.Grid.InsertRecord;
+      ckF7: if AValue.NoModifier then fPasswords.Filter.PSFocusChannel.Publish(TFocusData.Create(Self, True));
+      ckF8: if AValue.NoModifier then fPasswords.Grid.DeleteRecord;
+    end;
+  end else begin
+    case AValue.ControlKey of
+      ckEnter: if AValue.NoModifier then fOpenStore.Open;
+    end;
+  end;
+end;
+
 procedure TGUI.InitValues;
 begin
   inherited InitValues;
@@ -679,16 +785,8 @@ begin
 end;
 
 procedure TGUIStore.PSClickOpenObserver;
-var
-  mEncrypted: TStream;
 begin
-  mEncrypted := OpenEncryptedStore(fFileEdit.Text);
-  try
-    OpenDecryptedStore(mEncrypted, fPasswordEdit.Text);
-    PSGUIChannel.Debounce(TGUIData.Create(gaRender));
-  finally
-    mEncrypted.Free;
-  end;
+  Open;
 end;
 
 procedure TGUIStore.InitValues;
@@ -721,6 +819,19 @@ end;
 function TGUIStore.GetFileEdit: IDesignComponentEdit;
 begin
   Result := fFileEdit;
+end;
+
+procedure TGUIStore.Open;
+var
+  mEncrypted: TStream;
+begin
+  mEncrypted := OpenEncryptedStore(fFileEdit.Text);
+  try
+    OpenDecryptedStore(mEncrypted, fPasswordEdit.Text);
+    PSGUIChannel.Debounce(TGUIData.Create(gaRender));
+  finally
+    mEncrypted.Free;
+  end;
 end;
 
 procedure TGUIStore.Close;
@@ -771,7 +882,7 @@ begin
   mReg.InjectProp('DecryptedStore', IPersistStoreDevice);
 
   mReg := RegReact.RegisterDesignComponent(TGUIPasswords, IGUIPasswords);
-
+  mReg := RegReact.RegisterDesignComponent(TGUICommands, IGUICommands);
 end;
 
 procedure TApp.RegisterPersist;
