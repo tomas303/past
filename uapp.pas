@@ -29,7 +29,7 @@ unit uapp;
 interface
 
 uses
-  graphics, Classes, tal_uapp,
+  graphics, Classes, LCLIntf, httpprotocol, tal_uapp,
   rea_idesigncomponent, rea_udesigncomponent, rea_ilayout,
   trl_imetaelement, trl_iprops, trl_dicontainer, trl_itree,
   trl_pubsub, rea_ibits, trl_ilauncher,
@@ -222,19 +222,22 @@ type
     function GetNew: IDesignComponentButton;
     function GetDelete: IDesignComponentButton;
     function GetFilter: IDesignComponentButton;
+    function GetOpenURL: IDesignComponentButton;
     property New: IDesignComponentButton read GetNew;
     property Delete: IDesignComponentButton read GetDelete;
     property Filter: IDesignComponentButton read GetFilter;
+    property OpenURL: IDesignComponentButton read GetOpenURL;
   end;
 
   { TGUICommands }
 
   TGUICommands = class(TDesignComponent, IGUICommands)
   private
-    fNew, fDelete, fFilter: IDesignComponentButton;
+    fNew, fDelete, fFilter, fOpenURL: IDesignComponentButton;
     function GetNew: IDesignComponentButton;
     function GetDelete: IDesignComponentButton;
     function GetFilter: IDesignComponentButton;
+    function GetOpenURL: IDesignComponentButton;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -351,6 +354,11 @@ begin
   Result := fFilter;
 end;
 
+function TGUICommands.GetOpenURL: IDesignComponentButton;
+begin
+  Result := fOpenURL;
+end;
+
 procedure TGUICommands.InitValues;
 begin
   inherited InitValues;
@@ -369,6 +377,11 @@ begin
     .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
     .SetStr(cProps.ID, 'filter')
     .SetStr(cProps.Text, 'F7 - filter'));
+  fOpenURL := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+    .SetStr(cProps.ID, 'openurl')
+    .SetStr(cProps.Text, 'F12 - open url'));
 end;
 
 function TGUICommands.DoCompose: IMetaElement;
@@ -382,6 +395,7 @@ begin
   (mB as INode).AddChild(fNew as INode);
   (mB as INode).AddChild(fFilter as INode);
   (mB as INode).AddChild(fDelete as INode);
+  (mB as INode).AddChild(fOpenURL as INode);
   Result := mB.Compose;
 end;
 
@@ -417,11 +431,14 @@ begin
     .SetInt(cGrid.LaticeRowColor, clBlack)
     .SetInt(cGrid.LaticeColSize, 2)
     .SetInt(cGrid.LaticeRowSize, 2)
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetInt(cGrid.FocusRowColor, clLime)
+    .SetInt(cGrid.EditBorder, 1)
+    .SetInt(cGrid.EditBorderColor, clBlack)
     );
   fTags := Factory2.Locate<IDesignComponentGrid>(NewComposeProps
       .SetStr(cProps.ID, 'tags_grid')
       .SetIntf('PSGUIChannel', PSGUIChannel)
-      .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
       .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
       .SetInt(cGrid.RowCount, 5)
       .SetInt(cGrid.ColCount, 1)
@@ -430,6 +447,9 @@ begin
       .SetInt(cGrid.LaticeRowColor, clBlack)
       .SetInt(cGrid.LaticeColSize, 1)
       .SetInt(cGrid.LaticeRowSize, 1)
+      .SetInt(cGrid.FocusRowColor, clLime)
+      .SetInt(cGrid.EditBorder, 1)
+      .SetInt(cGrid.EditBorderColor, clBlack)
       );
   fCommands := Factory2.Locate<IGUICommands>(NewProps
    .SetInt(cProps.Color, clLtGray)
@@ -670,6 +690,7 @@ begin
       ckF2: if AValue.NoModifier then fPasswords.Grid.InsertRecord;
       ckF7: if AValue.NoModifier then fPasswords.Filter.PSFocusChannel.Publish(TFocusData.Create(Self, True));
       ckF8: if AValue.NoModifier then fPasswords.Grid.DeleteRecord;
+      ckF12: if AValue.NoModifier then OpenURL(HTTPEncode(fPasswords.LinkEdit.Text));
     end;
   end else begin
     case AValue.ControlKey of
