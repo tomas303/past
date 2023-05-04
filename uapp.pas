@@ -778,6 +778,7 @@ begin
       except
         on E: Exception do begin
           DecryptedStore.Close;
+          EncryptedStore.Close;
           raise Exception.Create('Cannot open crypted data - probably bad password');
         end;
       end;
@@ -817,7 +818,8 @@ begin
     .SetStr(cProps.ID, 'guiopenstore_file')
     );
   fPasswordEdit := Factory2.Locate<IDesignComponentEdit>(NewComposeProps
-    .SetStr(cProps.ID, 'guiopenstore_password')
+    .SetStr(cEdit.ID, 'guiopenstore_password')
+    .SetStr(cEdit.PasswordChar, '*')
     );
   fOpen := Factory2.Locate<IDesignComponentButton>(NewComposeProps
     .SetStr(cProps.ID, 'guiopenstore_open')
