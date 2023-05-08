@@ -30,7 +30,7 @@ interface
 
 uses
   graphics, Classes, LCLIntf, httpprotocol, tal_uapp,
-  rea_idesigncomponent, rea_udesigncomponent, rea_ilayout,
+  rea_idesigncomponent, rea_udesigncomponent, rea_ilayout, rea_ichannels,
   trl_imetaelement, trl_iprops, trl_dicontainer, trl_itree,
   trl_pubsub, rea_ibits, trl_ilauncher,
   trl_urttibroker, trl_irttibroker,
@@ -223,21 +223,24 @@ type
     function GetDelete: IDesignComponentButton;
     function GetFilter: IDesignComponentButton;
     function GetOpenURL: IDesignComponentButton;
+    function GetSecretsVisibility: IDesignComponentButton;
     property New: IDesignComponentButton read GetNew;
     property Delete: IDesignComponentButton read GetDelete;
     property Filter: IDesignComponentButton read GetFilter;
     property OpenURL: IDesignComponentButton read GetOpenURL;
+    property SecretsVisibility: IDesignComponentButton read GetSecretsVisibility;
   end;
 
   { TGUICommands }
 
   TGUICommands = class(TDesignComponent, IGUICommands)
   private
-    fNew, fDelete, fFilter, fOpenURL: IDesignComponentButton;
+    fNew, fDelete, fFilter, fOpenURL, fSecretsVisibility: IDesignComponentButton;
     function GetNew: IDesignComponentButton;
     function GetDelete: IDesignComponentButton;
     function GetFilter: IDesignComponentButton;
     function GetOpenURL: IDesignComponentButton;
+    function GetSecretsVisibility: IDesignComponentButton;
   protected
     procedure InitValues; override;
     function DoCompose: IMetaElement; override;
@@ -304,6 +307,7 @@ type
     fOpenStore: IGUIStore;
     fPasswords: IGUIPasswords;
     fIsOpened: Boolean;
+    fSecretsVisible: Boolean;
     function NewForm(const ADCs: TArray<IDesignComponent>): IDesignComponentForm;
     function NewLogButton: IDesignComponentButton;
     function NewStore: IGUIStore;
@@ -313,6 +317,8 @@ type
     fPasswordsData: IDataListPassword;
     function GetPasswordsData: IDataListPassword;
     procedure CreateDataConnectors;
+    procedure ApplySecretsVisibility(AVisible: Boolean);
+    procedure SwitchSecretsVisibility;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
     procedure PSPositionObserver(const AValue: TPositionData);
@@ -359,6 +365,11 @@ begin
   Result := fOpenURL;
 end;
 
+function TGUICommands.GetSecretsVisibility: IDesignComponentButton;
+begin
+  Result := fSecretsVisibility;
+end;
+
 procedure TGUICommands.InitValues;
 begin
   inherited InitValues;
@@ -377,6 +388,11 @@ begin
     .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
     .SetStr(cProps.ID, 'filter')
     .SetStr(cProps.Text, 'F7 - filter'));
+  fSecretsVisibility := Factory2.Locate<IDesignComponentButton>(NewProps
+    .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
+    .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
+    .SetStr(cProps.ID, 'showhidepasswords')
+    .SetStr(cProps.Text, 'F11 - secrets'));
   fOpenURL := Factory2.Locate<IDesignComponentButton>(NewProps
     .SetInt(cProps.Color, SelfProps.AsInt(cProps.Color))
     .SetBool(cProps.Transparent, SelfProps.AsBool(cProps.Transparent))
@@ -395,6 +411,7 @@ begin
   (mB as INode).AddChild(fNew as INode);
   (mB as INode).AddChild(fFilter as INode);
   (mB as INode).AddChild(fDelete as INode);
+  (mB as INode).AddChild(fSecretsVisibility as INode);
   (mB as INode).AddChild(fOpenURL as INode);
   Result := mB.Compose;
 end;
@@ -629,6 +646,19 @@ begin
   fDataConnector.PSListChangeChannel.Publish(TListChange.New(fPasswordsData.NewList));
 end;
 
+procedure TGUI.ApplySecretsVisibility(AVisible: Boolean);
+begin
+  fPasswords.PasswordEdit.PSSecretChannel.Publish(TSecretData.Create(AVisible));
+  fPasswords.Grid.PSSecretChannel.Publish(TSecretData.Create(AVisible, 1));
+end;
+
+procedure TGUI.SwitchSecretsVisibility;
+begin
+  fSecretsVisible := not fSecretsVisible;
+  ApplySecretsVisibility(fSecretsVisible);
+  PSGUIChannel.Debounce(TGUIData.Create(gaRender));
+end;
+
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
 begin
   if fStore.IsOpened then begin
@@ -690,6 +720,7 @@ begin
       ckF2: if AValue.NoModifier then fPasswords.Grid.InsertRecord;
       ckF7: if AValue.NoModifier then fPasswords.Filter.PSFocusChannel.Publish(TFocusData.Create(Self, True));
       ckF8: if AValue.NoModifier then fPasswords.Grid.DeleteRecord;
+      ckF11: if AValue.NoModifier then SwitchSecretsVisibility;
       ckF12: if AValue.NoModifier then OpenURL(HTTPEncode(fPasswords.LinkEdit.Text));
     end;
   end else begin
@@ -717,6 +748,8 @@ begin
       CreateDataConnectors;
       fAppSettings.ItemByName['LastOpenedFile'].AsString := fOpenStore.FileEdit.Text;
       fIsOpened := True;
+      fSecretsVisible := False;
+      ApplySecretsVisibility(fSecretsVisible);
       PublishAppSettings;
     end;
     (Result as INode).AddChild(fPasswords.Compose as INode);
