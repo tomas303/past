@@ -257,6 +257,7 @@ type
     function GetRemarkEdit: IDesignComponentMemo;
     function GetGrid: IDesignComponentGrid;
     function GetTags: IDesignComponentGrid;
+    function GetCommands: IGUICommands;
     property Filter: IDesignComponentFilter read GetFilter;
     property LoginEdit: IDesignComponentEdit read GetLoginEdit;
     property PasswordEdit: IDesignComponentEdit read GetPasswordEdit;
@@ -264,6 +265,7 @@ type
     property RemarkEdit: IDesignComponentMemo read GetRemarkEdit;
     property Grid: IDesignComponentGrid read GetGrid;
     property Tags: IDesignComponentGrid read GetTags;
+    property Commands: IGUICommands read GetCommands;
   end;
 
   { TGUIPasswords }
@@ -319,6 +321,12 @@ type
     procedure CreateDataConnectors;
     procedure ApplySecretsVisibility(AVisible: Boolean);
     procedure SwitchSecretsVisibility;
+  private
+    procedure CmdInsert;
+    procedure CmdDelete;
+    procedure CmdFilter;
+    procedure CmdSecretsVisibility;
+    procedure CmdOpenURL;
   private
     procedure PSSizeObserver(const AValue: TSizeData);
     procedure PSPositionObserver(const AValue: TPositionData);
@@ -615,6 +623,11 @@ function TGUI.NewPasswords: IGUIPasswords;
 begin
   Result := Factory2.Locate<IGUIPasswords>(NewProps.SetIntf('PSGUIChannel', PSGUIChannel));
   Result.Filter.PSTextFilterChannel.Subscribe(PSTextFilterChannelObserver);
+  Result.Commands.New.PSClickChannel.Subscribe(CmdInsert);
+  Result.Commands.Delete.PSClickChannel.Subscribe(CmdDelete);
+  Result.Commands.Filter.PSClickChannel.Subscribe(CmdFilter);
+  Result.Commands.SecretsVisibility.PSClickChannel.Subscribe(CmdSecretsVisibility);
+  Result.Commands.OpenURL.PSClickChannel.Subscribe(CmdOpenURL);
 end;
 
 procedure TGUI.CreateComponents;
@@ -657,6 +670,31 @@ begin
   fSecretsVisible := not fSecretsVisible;
   ApplySecretsVisibility(fSecretsVisible);
   PSGUIChannel.Debounce(TGUIData.Create(gaRender));
+end;
+
+procedure TGUI.CmdInsert;
+begin
+  fPasswords.Grid.InsertRecord;
+end;
+
+procedure TGUI.CmdDelete;
+begin
+  fPasswords.Grid.DeleteRecord;
+end;
+
+procedure TGUI.CmdFilter;
+begin
+  fPasswords.Filter.PSFocusChannel.Publish(TFocusData.Create(Self, True));
+end;
+
+procedure TGUI.CmdSecretsVisibility;
+begin
+  SwitchSecretsVisibility;
+end;
+
+procedure TGUI.CmdOpenURL;
+begin
+  OpenURL(HTTPEncode(fPasswords.LinkEdit.Text));
 end;
 
 procedure TGUI.PSSizeObserver(const AValue: TSizeData);
@@ -717,11 +755,11 @@ procedure TGUI.PSKeyDownChannelObserver(const AValue: TKeyData);
 begin
   if Store.IsOpened then begin
     case AValue.ControlKey of
-      ckF2: if AValue.NoModifier then fPasswords.Grid.InsertRecord;
-      ckF7: if AValue.NoModifier then fPasswords.Filter.PSFocusChannel.Publish(TFocusData.Create(Self, True));
-      ckF8: if AValue.NoModifier then fPasswords.Grid.DeleteRecord;
-      ckF11: if AValue.NoModifier then SwitchSecretsVisibility;
-      ckF12: if AValue.NoModifier then OpenURL(HTTPEncode(fPasswords.LinkEdit.Text));
+      ckF2: if AValue.NoModifier then CmdInsert;
+      ckF7: if AValue.NoModifier then CmdFilter;
+      ckF8: if AValue.NoModifier then CmdDelete;
+      ckF11: if AValue.NoModifier then CmdSecretsVisibility;
+      ckF12: if AValue.NoModifier then CmdOpenURL;
     end;
   end else begin
     case AValue.ControlKey of
